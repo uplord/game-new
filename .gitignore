@@ -1,0 +1,53 @@
+# Godot 4 specific
+.import/
+.godot/
+
+# Export presets (optional)
+# Uncomment if you don't want export settings in git
+# export_presets.cfg
+
+# Imported assets
+*.import
+
+# Mono / C# builds
+.mono/
+data_*/
+mono_crash.*.json
+
+# Build outputs
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.csproj
+*.sln
+*.user
+*.userprefs
+
+# JetBrains Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+RECOVER_*
+
+addons/

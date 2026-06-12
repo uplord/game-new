@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://bb8eldlc15jhd"]
+
+[ext_resource type="Texture2D" uid="uid://ckxwfquxnjgay" path="res://Maps/StarterTown/Art/map-starter.png" id="1_rr3rg"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rr3rg"]
+size = Vector2(1307, 735)
+
+[node name="Scene1" type="Node2D" unique_id=283029346]
+
+[node name="Background" type="Sprite2D" parent="." unique_id=2117231221]
+texture = ExtResource("1_rr3rg")
+
+[node name="Boundaries" type="Area2D" parent="." unique_id=1645794532]
+
+[node name="CameraLimits" type="CollisionShape2D" parent="Boundaries" unique_id=869885515]
+shape = SubResource("RectangleShape2D_rr3rg")
+
+[node name="SpawnPoints" type="Node2D" parent="." unique_id=1364785381]
+
+[node name="SpawnPoint" type="Marker2D" parent="SpawnPoints" unique_id=1876533906]
+position = Vector2(244, 178)
+
+[node name="SpawnPoint2" type="Marker2D" parent="SpawnPoints" unique_id=1687382878]
+position = Vector2(-218, 166)

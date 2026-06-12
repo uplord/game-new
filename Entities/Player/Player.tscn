@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://hush8kaubhd6"]
+
+[ext_resource type="Script" uid="uid://de4r8g7cc27gx" path="res://Entities/Player/Player.gd" id="1_ww0jn"]
+[ext_resource type="PackedScene" uid="uid://cptgim85kga3o" path="res://Entities/Model/Model.tscn" id="2_ww0jn"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1des2"]
+size = Vector2(140, 60)
+
+[node name="Player" type="CharacterBody2D" unique_id=2101141243]
+script = ExtResource("1_ww0jn")
+
+[node name="Base" type="Node2D" parent="." unique_id=519917011]
+
+[node name="Model" parent="Base" unique_id=1254587521 instance=ExtResource("2_ww0jn")]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=415665390]
+shape = SubResource("RectangleShape2D_1des2")

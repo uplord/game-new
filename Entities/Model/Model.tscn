@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://cptgim85kga3o"]
+
+[ext_resource type="Script" uid="uid://bekulgncg3yas" path="res://Entities/Model/Model.gd" id="1_6pff1"]
+[ext_resource type="Texture2D" uid="uid://islevk4evl2j" path="res://Entities/Model/Art/player.png" id="2_pw5d0"]
+
+[node name="Model" type="Node2D" unique_id=1254587521]
+script = ExtResource("1_6pff1")
+
+[node name="Human" type="Node2D" parent="." unique_id=1098883749]
+
+[node name="Body" type="Node2D" parent="Human" unique_id=1756271729]
+
+[node name="Full" type="Node2D" parent="Human/Body" unique_id=1218050754]
+scale = Vector2(0.25, 0.25)
+
+[node name="Skin" type="Sprite2D" parent="Human/Body/Full" unique_id=1364330755]
+position = Vector2(-12, -660)
+texture = ExtResource("2_pw5d0")
