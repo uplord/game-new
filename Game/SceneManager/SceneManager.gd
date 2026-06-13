@@ -17,9 +17,13 @@ var phantom_camera: Node
 var fade_cover: Node
 
 var player_scene = preload("res://Entities/Player/Player.tscn")
+var remote_player_scene = preload("res://Entities/RemotePlayer/RemotePlayer.tscn")
+
 var player: Node2D
 
 var spawn_requested := false
+
+var remote_players := {}
 
 
 # --------------------------------------------------
@@ -92,7 +96,7 @@ func _setup_player():
 		player = player_scene.instantiate()
 		player.add_to_group("player")
 
-	var player_parent = get_node_or_null("Player")
+	var player_parent = get_node_or_null("PlayerParent")
 	if player_parent == null:
 		player_parent = Node2D.new()
 		player_parent.name = "PlayerParent"
@@ -108,13 +112,10 @@ func _setup_player():
 	await get_tree().process_frame
 
 	phantom_camera = game.get_node("CameraManager/PhantomCamera2D")
-	print("phantom_camera", phantom_camera)
 	phantom_camera.follow_target = player
 
 	if not spawn_requested:
 		spawn_requested = true
-		
-		print("SPAWN")
 
 		ServerManager.send_to_server({
 			"type": "c_spawn_player",
@@ -151,6 +152,73 @@ func load_camera() -> void:
 	await get_tree().process_frame
 
 	_fade_in()
+
+
+# --------------------------------------------------
+# REMOTE PLAYERS
+# --------------------------------------------------
+func clear_remote_players():
+	for p in remote_players.values():
+		if is_instance_valid(p):
+			p.queue_free()
+
+	remote_players.clear()
+
+
+func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO):
+	if remote_players.has(id):
+		if is_instance_valid(remote_players[id]):
+			remote_players[id].queue_free()
+
+	var remote_player = remote_player_scene.instantiate()
+	remote_player.position = pos
+	if remote_player.has_method("set_remote_state"):
+		remote_player.set_remote_state(pos, remote_velocity)
+	else:
+		remote_player.set_target_position(pos)
+	if remote_player.has_method("set_facing"):
+		remote_player.set_facing(facing)
+
+	var player_parent = map.get_node_or_null("PlayerParent")
+	if player_parent == null:
+		player_parent = Node2D.new()
+		player_parent.name = "PlayerParent"
+		map.add_child(player_parent)
+
+	player_parent.add_child(remote_player)
+	remote_players[id] = remote_player
+
+
+func update_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO):
+	if not remote_players.has(id):
+		spawn_remote_player(id, pos, facing, remote_velocity)
+		return
+
+	var p = remote_players[id]
+
+	if not is_instance_valid(p):
+		remote_players.erase(id)
+		return
+
+	if p.has_method("set_remote_state"):
+		p.set_remote_state(pos, remote_velocity)
+	elif p.has_method("set_target_position"):
+		p.set_target_position(pos)
+	else:
+		p.position = pos
+
+	if p.has_method("set_facing"):
+		p.set_facing(facing)
+
+
+func remove_remote_player(id: int):
+	if not remote_players.has(id):
+		return
+
+	if is_instance_valid(remote_players[id]):
+		remote_players[id].queue_free()
+
+	remote_players.erase(id)
 
 
 # --------------------------------------------------

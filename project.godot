@@ -21,6 +21,10 @@ ServerManager="*uid://du8t1qemq60d"
 SceneManager="*uid://b1f8n5uhnr354"
 PhantomCameraManager="*uid://duq6jhf6unyis"
 
+[debug]
+
+settings/physics_interpolation/enable_warnings=false
+
 [display]
 
 window/size/viewport_width=1920
@@ -40,3 +44,4 @@ enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg")
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

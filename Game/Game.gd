@@ -12,10 +12,16 @@ func _ready() -> void:
 
 
 func _on_server_ready():
-	print("READY")
+	#print("READY")
 	SceneManager.load_map()
 	SceneManager.load_camera()
+	
+	await get_tree().process_frame
+	ServerManager.send_to_server({
+		"type": "c_request_sync"
+	})
 
 
 func _on_server_lost():
-	print("LOST")
+	pass
+	#print("LOST")

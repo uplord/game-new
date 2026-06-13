@@ -1,7 +1,12 @@
 [gd_scene format=3 uid="uid://hush8kaubhd6"]
 
 [ext_resource type="Script" uid="uid://de4r8g7cc27gx" path="res://Entities/Player/Player.gd" id="1_ww0jn"]
-[ext_resource type="PackedScene" uid="uid://cptgim85kga3o" path="res://Entities/Model/Model.tscn" id="2_ww0jn"]
+[ext_resource type="PackedScene" uid="uid://cdthxq6eebin7" path="res://Entities/Models/Model.tscn" id="2_ww0jn"]
+[ext_resource type="Script" uid="uid://tvb3xi8lsb3p" path="res://Entities/Models/Data/Human/HumanModelData.gd" id="3_vweq0"]
+
+[sub_resource type="Resource" id="Resource_1des2"]
+script = ExtResource("3_vweq0")
+metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1des2"]
 size = Vector2(140, 60)
@@ -11,7 +16,8 @@ script = ExtResource("1_ww0jn")
 
 [node name="Base" type="Node2D" parent="." unique_id=519917011]
 
-[node name="Model" parent="Base" unique_id=1254587521 instance=ExtResource("2_ww0jn")]
+[node name="Model" parent="Base" unique_id=1474508977 instance=ExtResource("2_ww0jn")]
+model_data = SubResource("Resource_1des2")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=415665390]
 shape = SubResource("RectangleShape2D_1des2")

@@ -12,15 +12,51 @@ func setup(sm: Node, logger_ref: Node) -> void:
 
 
 # --------------------------------------------------
+# VALIDATION
+# --------------------------------------------------
+func _is_valid_client(client_id: int) -> bool:
+	return server_manager.remote_players.has(client_id)
+
+
+func _is_position_valid(pos: Vector2) -> bool:
+	return abs(pos.x) < 100000 and abs(pos.y) < 100000
+
+
+func _validate_move(
+	client_id: int,
+	data: Dictionary
+) -> bool:
+	if not _is_valid_client(client_id):
+		print(111)
+		return false
+
+	if not data.has("position"):
+		print(222)
+		return false
+
+	#if not data.has("direction"):
+		#print(333)
+		#return false
+
+	if not _is_position_valid(data.position):
+		print(444)
+		return false
+
+	return true
+
+
+# --------------------------------------------------
 # SERVER PACKETS
 # --------------------------------------------------
 func handle_server_packet(client_id: int, data: Dictionary) -> void:
-	match data.get("type", ""):
-		"c_handshake":
-			logger.info("Client handshake: %d" % client_id)
+	var packet_type = data.get("type", "")
 
+	if packet_type != "c_handshake" and not server_manager.connected_clients.has(client_id):
+		return
+
+	match packet_type:
+		"c_handshake":
 			server_manager.connected_clients[client_id] = 0.0
-			
 			logger.info("Total players: %d" % server_manager.connected_clients.size())
 
 			server_manager.send_to_client(client_id, {
@@ -33,47 +69,236 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 				server_manager.connected_clients[client_id] = 0.0
 
 		"c_spawn_player":
-			logger.info("Client spawn: %d" % client_id)
-			
+			if server_manager.remote_players.has(client_id):
+				return
+
 			var map = SceneManager.current_map
 			var scene = SceneManager.current_scene
 			
-			var points = instance_manager.get_spawn_points(
+			var instance = instance_manager.find_available_instance(
 				map,
-				scene
+				scene,
 			)
 			
-			var spawn_position = Vector2.ZERO
-			
-			if points.is_empty():
-				logger.warn(
-					"No spawn points for %s::%s"
-					% [map, scene]
-				)
+			if instance == -1:
+				logger.info("Client spawn failed: %d" % client_id)
+				return
 
-				spawn_position =  Vector2.ZERO
+			instance_manager.add_player_to_instance(
+				client_id,
+				map,
+				scene,
+				instance,
+			)
 
-			spawn_position = points.pick_random()
-			
-			print("spawn_position: ", spawn_position)
+			var spawn_position = instance_manager.get_spawn_position(
+				client_id,
+				map,
+				scene,
+				instance
+			)
+
+			var player_data = {
+				"id": client_id,
+				"position": spawn_position,
+				"direction": Vector2.RIGHT,
+				"facing": 1,
+				"pose": 0,
+				"map": map,
+				"scene": scene,
+				"instance": instance
+			}
+
+			server_manager.remote_players[client_id] = player_data
+
+			server_manager.add_to_instance(client_id, player_data)
 
 			server_manager.send_to_client(
 				client_id,
 				{
 					"type": "s_spawn_player",
-					"spawn_position": spawn_position
+					"spawn_position": spawn_position,
+					"instance": instance
 				}
 			)
 
+			logger.info("Client spawn: %d - %s - %s - %s" % [client_id, map, scene, instance])
+
+			sync_visibility_group(
+				map,
+				scene,
+				instance
+			)
+
 		"c_move_player":
-			logger.info("Client move: %d" % client_id)
-			logger.info("Move position: %s" % data.position)
+			#logger.info("Client move: %d - %s" % [client_id, data.position])
+			if not _validate_move(client_id, data):
+				server_manager.handle_disconnect(client_id)
+				return
+
+			var player = server_manager.remote_players.get(
+				client_id,
+				null
+			)
+
+			if player == null:
+				return
+
+			player.position = data.position
+			player.velocity = data.get("velocity", Vector2.ZERO)
+			player.facing = int(data.get("facing", player.get("facing", 1)))
+			#player.direction = data.direction
+
+			server_manager.remote_players[client_id] = player
+
+			var players_in_instance = instance_manager.get_instance_players(
+				player.map,
+				player.scene,
+				player.instance
+			)
+
+			for target_client_id in players_in_instance:
+
+				if target_client_id == client_id:
+					continue
+
+				server_manager.send_to_client(target_client_id, {
+					"type": "s_remote_move",
+					"id": client_id,
+					"position": player.position,
+					"velocity": player.get("velocity", Vector2.ZERO),
+					"facing": player.get("facing", 1),
+					#"direction": player.direction,
+				})
+
+		"c_stop_player":
+			if not _validate_move(client_id, data):
+				server_manager.handle_disconnect(client_id, "bad stop")
+				return
+
+			var player = server_manager.remote_players.get(client_id, null)
+			if player == null:
+				return
+
+			player.position = data.position
+			player.velocity = Vector2.ZERO
+			player.facing = int(data.get("facing", player.get("facing", 1)))
+			server_manager.remote_players[client_id] = player
+
+			var players_in_instance = instance_manager.get_instance_players(
+				player.map,
+				player.scene,
+				player.instance
+			)
+
+			for target_client_id in players_in_instance:
+				if target_client_id == client_id:
+					continue
+
+				server_manager.send_to_client(target_client_id, {
+					"type": "s_remote_move",
+					"id": client_id,
+					"position": player.position,
+					"velocity": Vector2.ZERO,
+					"facing": player.get("facing", 1),
+				})
 
 		"c_teleport_player":
 			logger.info("Client teleport: %d" % client_id)
 
 		"c_request_sync":
 			logger.info("Client request sync: %d" % client_id)
+			
+			var player = server_manager.remote_players.get(
+				client_id,
+				null
+			)
+
+			if player == null:
+				return
+
+			var players_in_instance = instance_manager.get_instance_players(
+				player.map,
+				player.scene,
+				player.instance
+			)
+
+			var players := []
+
+			for other_client_id in players_in_instance:
+				if other_client_id == client_id:
+					continue
+
+				var other_player = server_manager.remote_players.get(other_client_id, null)
+				if other_player == null:
+					continue
+
+				players.append({
+					"id": other_client_id,
+					"position": other_player.position,
+					"velocity": other_player.get("velocity", Vector2.ZERO),
+					"direction": other_player.direction,
+					"facing": other_player.get("facing", 1),
+					"pose": other_player.get("pose", 0)
+				})
+
+			server_manager.send_to_client(
+				client_id,
+				{
+					"type": "s_request_sync",
+					"players": players,
+					"map_population":
+						instance_manager.get_map_instance_population(
+							player.map,
+							player.instance
+						)
+				}
+			)
+
+
+# --------------------------------------------------
+# SYNC VISIBILITY GROUP
+# --------------------------------------------------
+func sync_visibility_group(
+	map: String,
+	scene: String,
+	instance: int
+):
+	var players_in_instance = instance_manager.get_instance_players(
+		map,
+		scene,
+		instance
+	)
+
+	var map_population = instance_manager.get_map_instance_population(
+		map,
+		instance
+	)
+
+	for target_client_id in players_in_instance:
+		if not server_manager.connected_clients.has(target_client_id):
+			continue
+
+		var visible_players := []
+
+		for other_client_id in players_in_instance:
+
+			if other_client_id == target_client_id:
+				continue
+
+			if not server_manager.connected_clients.has(other_client_id):
+				continue
+
+			if server_manager.remote_players.has(other_client_id):
+				visible_players.append(
+					server_manager.remote_players[other_client_id]
+				)
+
+		server_manager.send_to_client(target_client_id, {
+			"type": "s_request_sync",
+			"players": visible_players,
+			"map_population": map_population
+		})
 
 
 # --------------------------------------------------
@@ -82,17 +307,40 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 func handle_client_packet(data: Dictionary) -> void:
 	match data.get("type", ""):
 		"s_handshake_ack":
-			logger.info("Handshake_ack: %d" % data.client_id)
+			#logger.info("Handshake_ack: %d" % data.client_id)
 			server_manager.local_peer_id = data.client_id
 			server_manager.mark_server_ready()
 
 		"s_spawn_player":
-			logger.info("Server spawn position: %s" % data.spawn_position)
+			#logger.info("Server spawn position: %s" % data.spawn_position)
 			SceneManager.player.position = data.spawn_position
 			SceneManager.player.visible = true
+
+			server_manager.send_to_server({
+				"type": "c_request_sync"
+			})
 
 		"s_teleport_player":
 			logger.info("Server teleport")
 
 		"s_request_sync":
 			logger.info("Server request sync")
+			
+			SceneManager.clear_remote_players()
+
+			for p in data.players:
+				SceneManager.spawn_remote_player(
+					p.id,
+					p.position,
+					int(p.get("facing", 1)),
+					p.get("velocity", Vector2.ZERO),
+				)
+
+		"s_remote_move":
+			var id = data.id
+			SceneManager.update_remote_player(
+				id,
+				data.position,
+				int(data.get("facing", 1)),
+				data.get("velocity", Vector2.ZERO),
+			)

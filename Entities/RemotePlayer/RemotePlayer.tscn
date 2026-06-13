@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://cbu7aksmdxm37"]
+
+[ext_resource type="Script" uid="uid://cm53to5m5bdc" path="res://Entities/RemotePlayer/RemotePlayer.gd" id="1_65t1j"]
+[ext_resource type="PackedScene" uid="uid://cdthxq6eebin7" path="res://Entities/Models/Model.tscn" id="2_65t1j"]
+[ext_resource type="Script" uid="uid://tvb3xi8lsb3p" path="res://Entities/Models/Data/Human/HumanModelData.gd" id="3_27307"]
+
+[sub_resource type="Resource" id="Resource_8bwpe"]
+script = ExtResource("3_27307")
+metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
+
+[node name="RemotePlayer" type="CharacterBody2D" unique_id=1807382733]
+modulate = Color(0.12921187, 0.6892027, 0.8505389, 1)
+script = ExtResource("1_65t1j")
+
+[node name="Base" type="Node2D" parent="." unique_id=1586651273]
+
+[node name="Model" parent="Base" unique_id=1474508977 instance=ExtResource("2_65t1j")]
+model_data = SubResource("Resource_8bwpe")

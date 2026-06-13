@@ -27,6 +27,8 @@ var handshake_sent: bool = false
 var heartbeat_timer: float = 0.0
 
 var connected_clients: Dictionary = {}
+var remote_players: Dictionary = {}
+var remote_players_by_instance: Dictionary = {}
 
 # --------------------------------------------------
 # INIT
@@ -167,10 +169,40 @@ func handle_server_disconnect():
 
 func handle_disconnect(client_id: int, reason: String) -> void:
 	logger.info("Disconnect: %d - %s" % [client_id, reason])
+
+	var p = remote_players.get(client_id, null)
+
 	full_cleanup_client(client_id)
+
+	if p:
+		packet_manager.sync_visibility_group(
+			p.get("map", ""),
+			p.get("scene", ""),
+			p.get("instance", 1)
+		)
 
 
 func full_cleanup_client(client_id: int):
+	if remote_players.has(client_id):
+		var p = remote_players[client_id]
+
+		remove_from_instance(
+			client_id,
+			p.get("map", ""),
+			p.get("scene", ""),
+			p.get("instance", 1)
+		)
+
+		instance_manager.remove_player_from_instance(
+			client_id,
+			p.get("map", ""),
+			p.get("scene", ""),
+			p.get("instance", 1)
+		)
+
+		instance_manager.free_spawn(client_id)
+	
+	remote_players.erase(client_id)
 	connected_clients.erase(client_id)
 	logger.info("Total players: %d" % connected_clients.size())
 
@@ -186,6 +218,16 @@ func _send(data: Dictionary, target: int) -> void:
 	if peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
 		return
 
+	if is_server and not connected_clients.has(target):
+		return
+
+	var packet_type = data.get("type", "")
+
+	if packet_type in ["c_move_player", "c_stop_player", "s_remote_move"]:
+		peer.set_transfer_mode(MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED)
+	else:
+		peer.set_transfer_mode(MultiplayerPeer.TRANSFER_MODE_RELIABLE)
+
 	peer.set_target_peer(target)
 	peer.put_var(data)
 	peer.set_target_peer(0)
@@ -198,6 +240,47 @@ func send_to_server(data: Dictionary) -> void:
 
 func send_to_client(client_id: int, data: Dictionary) -> void:
 	_send(data, client_id)
+
+
+func broadcast_to_instance(map: String, instance: int, data: Dictionary):
+	var key = "%s::%d" % [map, instance]
+
+	if not remote_players_by_instance.has(key):
+		return
+
+	for client_id in remote_players_by_instance[key].keys():
+		_send(data, client_id)
+
+
+# -------------------------
+# INSTANCE HELPERS
+# -------------------------
+func _instance_key(map: String, scene: String, instance: int) -> String:
+	return "%s::%s::%d" % [map, scene, instance]
+
+
+func add_to_instance(client_id: int, data: Dictionary) -> void:
+	var key = _instance_key(data.map, data.scene, data.instance)
+
+	if not remote_players_by_instance.has(key):
+		remote_players_by_instance[key] = {}
+
+	remote_players_by_instance[key][client_id] = data
+
+
+func remove_from_instance(
+		client_id: int,
+		map: String,
+		scene: String,
+		instance: int
+	) -> void:
+	var key = _instance_key(map, scene, instance)
+
+	if remote_players_by_instance.has(key):
+		remote_players_by_instance[key].erase(client_id)
+
+		if remote_players_by_instance[key].is_empty():
+			remote_players_by_instance.erase(key)
 
 
 # --------------------------------------------------

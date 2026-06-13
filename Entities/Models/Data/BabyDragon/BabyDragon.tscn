@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://dhrlgwchjgnp3"]
+
+[ext_resource type="Script" uid="uid://crljuftd45a" path="res://Entities/Models/Data/BabyDragon/BabyDragon.gd" id="1_h62or"]
+[ext_resource type="Shader" uid="uid://c461sxt8qv8sf" path="res://Utilities/Shaders/shadow.gdshader" id="2_1cx3c"]
+[ext_resource type="Texture2D" uid="uid://byqffrsot87ue" path="res://Entities/Models/Data/BabyDragon/Art/FireDragon/chest/base.png" id="2_h62or"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pl6v2"]
+shader = ExtResource("2_1cx3c")
+shader_parameter/opacity = 0.1
+shader_parameter/softness = 0.25
+
+[node name="BabyDragon" type="Node2D" unique_id=278953931]
+script = ExtResource("1_h62or")
+
+[node name="Shadow" type="ColorRect" parent="." unique_id=627547793]
+material = SubResource("ShaderMaterial_pl6v2")
+offset_left = -50.0
+offset_top = -16.0
+offset_right = 50.0
+offset_bottom = 16.0
+
+[node name="Body" type="Node2D" parent="." unique_id=2077736839]
+
+[node name="Chest" type="Node2D" parent="Body" unique_id=2020028435]
+scale = Vector2(0.25, 0.25)
+
+[node name="Base" type="Sprite2D" parent="Body/Chest" unique_id=874591384]
+position = Vector2(0, -112)
+texture = ExtResource("2_h62or")
+offset = Vector2(0, -690)
