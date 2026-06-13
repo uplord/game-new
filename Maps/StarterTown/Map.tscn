@@ -4,3 +4,4 @@
 
 [node name="Map" type="Node2D" unique_id=26192088]
 script = ExtResource("1_pvnkv")
+player_max = 3

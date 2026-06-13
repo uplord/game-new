@@ -1,5 +1,4 @@
-extends Node
+extends Node2D
+class_name BaseMap
 
-
-func _ready() -> void:
-	pass
+@export var player_max: int = 1

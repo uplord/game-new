@@ -147,6 +147,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 			player.position = data.position
 			player.velocity = data.get("velocity", Vector2.ZERO)
 			player.facing = int(data.get("facing", player.get("facing", 1)))
+			player.pose = int(data.get("pose", player.get("pose", 0)))
 			#player.direction = data.direction
 
 			server_manager.remote_players[client_id] = player
@@ -168,6 +169,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 					"position": player.position,
 					"velocity": player.get("velocity", Vector2.ZERO),
 					"facing": player.get("facing", 1),
+					"pose": player.get("pose", 0),
 					#"direction": player.direction,
 				})
 
@@ -183,6 +185,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 			player.position = data.position
 			player.velocity = Vector2.ZERO
 			player.facing = int(data.get("facing", player.get("facing", 1)))
+			player.pose = int(data.get("pose", player.get("pose", 0)))
 			server_manager.remote_players[client_id] = player
 
 			var players_in_instance = instance_manager.get_instance_players(
@@ -201,6 +204,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 					"position": player.position,
 					"velocity": Vector2.ZERO,
 					"facing": player.get("facing", 1),
+					"pose": player.get("pose", 0),
 				})
 
 		"c_teleport_player":
@@ -334,6 +338,7 @@ func handle_client_packet(data: Dictionary) -> void:
 					p.position,
 					int(p.get("facing", 1)),
 					p.get("velocity", Vector2.ZERO),
+					int(p.get("pose", 0)),
 				)
 
 		"s_remote_move":
@@ -343,4 +348,5 @@ func handle_client_packet(data: Dictionary) -> void:
 				data.position,
 				int(data.get("facing", 1)),
 				data.get("velocity", Vector2.ZERO),
+				int(data.get("pose", 0)),
 			)

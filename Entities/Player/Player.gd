@@ -258,6 +258,7 @@ func set_pose(pose: PlayerPose) -> void:
 
 	prev_pose = pose
 	animation_state.travel(PlayerUtil.to_anim_name(pose))
+	_send_pose_update()
 
 
 func _update_camera_look_ahead() -> void:
@@ -332,6 +333,7 @@ func _send_position_if_needed() -> void:
 		"position": position,
 		"velocity": velocity,
 		"facing": facing,
+		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})
@@ -344,6 +346,19 @@ func _send_move(_target: Vector2) -> void:
 		"position": position,
 		"velocity": velocity,
 		"facing": facing,
+		"pose": int(prev_pose),
+		"map": SceneManager.current_map,
+		"scene": SceneManager.current_scene,
+	})
+
+
+func _send_pose_update() -> void:
+	ServerManager.send_to_server({
+		"type": "c_move_player",
+		"position": position,
+		"velocity": velocity,
+		"facing": facing,
+		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})
@@ -355,6 +370,7 @@ func _send_stop() -> void:
 		"position": position,
 		"velocity": Vector2.ZERO,
 		"facing": facing,
+		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})

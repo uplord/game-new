@@ -8,7 +8,7 @@
 script = ExtResource("3_27307")
 metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
 
-[node name="RemotePlayer" type="CharacterBody2D" unique_id=1807382733]
+[node name="RemotePlayer" type="Node2D" unique_id=145321000]
 modulate = Color(0.12921187, 0.6892027, 0.8505389, 1)
 script = ExtResource("1_65t1j")
 

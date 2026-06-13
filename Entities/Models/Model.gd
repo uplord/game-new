@@ -7,7 +7,7 @@ extends Node2D
 @export var starting_pose: PlayerUtil.PlayerPose = PlayerUtil.PlayerPose.IDLE
 
 var selected_model: Node
-const Z_SORT_OFFSET := 540
+const Z_SORT_OFFSET := 1000
 var _last_z_index: int = -2147483648
 
 func _ready() -> void:

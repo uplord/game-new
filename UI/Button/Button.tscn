@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://0wn6iixn2ehd"]
+
+[ext_resource type="Script" uid="uid://cyyotfyf0vfft" path="res://UI/Button/Button.gd" id="1_xg2gh"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xg2gh"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_83xgs"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_45is7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_42at2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_luhso"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wj3dd"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+
+[node name="Button" type="Button" unique_id=1306766417]
+clip_contents = true
+custom_minimum_size = Vector2(128, 128)
+size_flags_vertical = 8
+theme_override_styles/normal = SubResource("StyleBoxFlat_xg2gh")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_83xgs")
+theme_override_styles/hover = SubResource("StyleBoxFlat_45is7")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_42at2")
+theme_override_styles/focus = SubResource("StyleBoxFlat_luhso")
+script = ExtResource("1_xg2gh")
+
+[node name="Panel" type="Panel" parent="." unique_id=11308724]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_wj3dd")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1391114924]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2

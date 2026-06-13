@@ -63,6 +63,19 @@ func load_map() -> void:
 	load_scene(current_scene)
 
 
+func unload_map() -> void:
+	clear_remote_players()
+
+	if map:
+		map.queue_free()
+		map = null
+
+	if player and player.get_parent():
+		player.get_parent().remove_child(player)
+
+	spawn_requested = false
+
+
 # --------------------------------------------------
 # SCENE
 # --------------------------------------------------
@@ -165,7 +178,7 @@ func clear_remote_players():
 	remote_players.clear()
 
 
-func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO):
+func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO, pose: int = 0):
 	if remote_players.has(id):
 		if is_instance_valid(remote_players[id]):
 			remote_players[id].queue_free()
@@ -178,6 +191,8 @@ func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity
 		remote_player.set_target_position(pos)
 	if remote_player.has_method("set_facing"):
 		remote_player.set_facing(facing)
+	if remote_player.has_method("set_pose"):
+		remote_player.set_pose(pose)
 
 	var player_parent = map.get_node_or_null("PlayerParent")
 	if player_parent == null:
@@ -189,9 +204,9 @@ func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity
 	remote_players[id] = remote_player
 
 
-func update_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO):
+func update_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO, pose: int = 0):
 	if not remote_players.has(id):
-		spawn_remote_player(id, pos, facing, remote_velocity)
+		spawn_remote_player(id, pos, facing, remote_velocity, pose)
 		return
 
 	var p = remote_players[id]
@@ -209,6 +224,9 @@ func update_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocit
 
 	if p.has_method("set_facing"):
 		p.set_facing(facing)
+
+	if p.has_method("set_pose"):
+		p.set_pose(pose)
 
 
 func remove_remote_player(id: int):

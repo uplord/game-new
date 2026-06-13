@@ -23,5 +23,4 @@ func _on_server_ready():
 
 
 func _on_server_lost():
-	pass
-	#print("LOST")
+	SceneManager.unload_map()

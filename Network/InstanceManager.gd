@@ -3,7 +3,7 @@ extends Node
 class_name InstanceManager
 
 const MAX_INSTANCES_PER_MAP = 100
-const INSTANCE_PLAYER_LIMIT = 2
+const INSTANCE_PLAYER_LIMIT = 1
 
 var server_manager: Node
 var logger: Node
