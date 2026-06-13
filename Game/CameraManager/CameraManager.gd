@@ -53,6 +53,14 @@ func _on_window_resized():
 	apply_camera_limits()
 
 
+func get_map_scale() -> float:
+	return map_scale
+
+
+func set_look_ahead_direction(dir: float) -> void:
+	target_look_ahead = clamp(dir, -1.0, 1.0)
+
+
 func apply_orientation_zoom():
 	var safe_area: Rect2i = DisplayServer.get_display_safe_area()
 	var screen_size := get_viewport().get_visible_rect().size

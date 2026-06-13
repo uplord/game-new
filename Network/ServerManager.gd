@@ -198,3 +198,11 @@ func send_to_server(data: Dictionary) -> void:
 
 func send_to_client(client_id: int, data: Dictionary) -> void:
 	_send(data, client_id)
+
+
+# --------------------------------------------------
+# UTILS
+# --------------------------------------------------
+func mark_server_ready() -> void:
+	connected = true
+	server_ready.emit()

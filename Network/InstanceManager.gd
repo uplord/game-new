@@ -5,6 +5,8 @@ class_name InstanceManager
 var server_manager: Node
 var logger: Node
 
+var instance_population := {}
+
 
 # --------------------------------------------------
 # SETUP

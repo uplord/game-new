@@ -67,6 +67,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 
 		"c_move_player":
 			logger.info("Client move: %d" % client_id)
+			logger.info("Move position: %s" % data.position)
 
 		"c_teleport_player":
 			logger.info("Client teleport: %d" % client_id)
@@ -82,9 +83,8 @@ func handle_client_packet(data: Dictionary) -> void:
 	match data.get("type", ""):
 		"s_handshake_ack":
 			logger.info("Handshake_ack: %d" % data.client_id)
-			server_manager.connected = true
 			server_manager.local_peer_id = data.client_id
-			server_manager.server_ready.emit()
+			server_manager.mark_server_ready()
 
 		"s_spawn_player":
 			logger.info("Server spawn position: %s" % data.spawn_position)
