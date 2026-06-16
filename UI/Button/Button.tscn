@@ -17,7 +17,7 @@ bg_color = Color(0.6, 0.6, 0.6, 0)
 
 [node name="Button" type="Button" unique_id=1306766417]
 clip_contents = true
-custom_minimum_size = Vector2(128, 128)
+custom_minimum_size = Vector2(48, 48)
 size_flags_vertical = 8
 theme_override_styles/normal = SubResource("StyleBoxFlat_xg2gh")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_83xgs")
@@ -37,7 +37,21 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_wj3dd")
 
-[node name="TextureRect" type="TextureRect" parent="." unique_id=1391114924]
+[node name="Icon" type="TextureRect" parent="." unique_id=1391114924]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Trim" type="TextureRect" parent="." unique_id=1573379324]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5

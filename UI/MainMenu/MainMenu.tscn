@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://dk6o4tvxb5ueb"]
+
+[ext_resource type="Script" uid="uid://bbu6plqtlakc4" path="res://UI/MainMenu/MainMenu.gd" id="1_6ba75"]
+[ext_resource type="PackedScene" uid="uid://0wn6iixn2ehd" path="res://UI/Button/Button.tscn" id="2_kt4fb"]
+
+[node name="MainMenu" type="Control" unique_id=694641312]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_6ba75")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1845525275]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Button" parent="CenterContainer" unique_id=1306766417 instance=ExtResource("2_kt4fb")]
+layout_mode = 2
+text = "Connect"

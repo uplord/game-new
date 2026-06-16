@@ -202,7 +202,9 @@ func full_cleanup_client(client_id: int):
 
 		instance_manager.free_spawn(client_id)
 	
-	remote_players.erase(client_id)
+	remote_players.erase(client_id)	
+	if packet_manager != null and packet_manager.has_method("forget_client"):
+		packet_manager.forget_client(client_id)
 	connected_clients.erase(client_id)
 	logger.info("Total players: %d" % connected_clients.size())
 
@@ -223,7 +225,9 @@ func _send(data: Dictionary, target: int) -> void:
 
 	var packet_type = data.get("type", "")
 
-	if packet_type in ["c_move_player", "c_stop_player", "s_remote_move"]:
+	var is_movement_packet = packet_type == "c_move_player" or (packet_type == "s_remote_move" and not bool(data.get("stopped", false)))
+
+	if is_movement_packet:
 		peer.set_transfer_mode(MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED)
 	else:
 		peer.set_transfer_mode(MultiplayerPeer.TRANSFER_MODE_RELIABLE)

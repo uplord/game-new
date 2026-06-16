@@ -13,6 +13,7 @@ script = ExtResource("1_irxgs")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1192704083]
 top_level = true
+editor_draw_limits = true
 
 [node name="PhantomCameraHost" type="Node" parent="Camera2D" unique_id=1860066025]
 process_priority = 300
@@ -27,6 +28,7 @@ follow_mode = 2
 tween_resource = SubResource("Resource_pvv6t")
 tween_on_load = false
 follow_axis_lock = 2
+draw_limits = true
 metadata/_custom_type_script = "uid://bhexx6mj1xv3q"
 
 [node name="Cover" type="CanvasLayer" parent="." unique_id=2117134120]

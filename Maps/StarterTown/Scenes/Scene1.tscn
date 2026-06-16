@@ -15,6 +15,11 @@ texture = ExtResource("1_rr3rg")
 [node name="CameraLimits" type="CollisionShape2D" parent="Boundaries" unique_id=869885515]
 shape = SubResource("RectangleShape2D_rr3rg")
 
+[node name="Boundary" type="StaticBody2D" parent="Boundaries" unique_id=1359634240]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Boundaries/Boundary" unique_id=669647876]
+polygon = PackedVector2Array(-57, 368, 649, 363, 648, -274, 430, -240, 193, -184, 19, -182, -347, -194, -654, -203, -653, 365, -57, 368, -61, 758, -831, 778, -841, -673, 886, -662, 887, 780, -61, 766)
+
 [node name="SpawnPoints" type="Node2D" parent="." unique_id=1364785381]
 
 [node name="SpawnPoint" type="Marker2D" parent="SpawnPoints" unique_id=1876533906]

@@ -4,11 +4,41 @@ var server_manager: Node
 var logger: Node
 var instance_manager: InstanceManager
 
+const MOVEMENT_BROADCAST_INTERVAL := 0.05
+var last_movement_broadcast_time: Dictionary = {}
+
 
 func setup(sm: Node, logger_ref: Node) -> void:
 	server_manager = sm
 	logger = logger_ref
 	instance_manager = server_manager.instance_manager
+
+
+func forget_client(client_id: int) -> void:
+	last_movement_broadcast_time.erase(client_id)
+
+
+func _get_sync_facing(player: Dictionary) -> int:
+	var velocity: Vector2 = player.get("velocity", Vector2.ZERO)
+	if abs(velocity.x) > 20.0:
+		return int(sign(velocity.x))
+
+	return int(player.get("facing", 1))
+
+
+func _make_sync_player_data(player: Dictionary) -> Dictionary:
+	var velocity: Vector2 = player.get("velocity", Vector2.ZERO)
+	return {
+		"id": player.get("id", 0),
+		"position": player.get("position", Vector2.ZERO),
+		"velocity": velocity,
+		"direction": player.get("direction", Vector2.RIGHT),
+		"facing": _get_sync_facing(player),
+		"pose": player.get("pose", 0),
+		"sequence": player.get("sequence", 0),
+		"server_time": Time.get_ticks_msec() / 1000.0,
+		"stopped": velocity.length() <= 20.0,
+	}
 
 
 # --------------------------------------------------
@@ -104,6 +134,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 				"direction": Vector2.RIGHT,
 				"facing": 1,
 				"pose": 0,
+				"sequence": 0,
 				"map": map,
 				"scene": scene,
 				"instance": instance
@@ -133,7 +164,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 		"c_move_player":
 			#logger.info("Client move: %d - %s" % [client_id, data.position])
 			if not _validate_move(client_id, data):
-				server_manager.handle_disconnect(client_id)
+				server_manager.handle_disconnect(client_id, "bad move")
 				return
 
 			var player = server_manager.remote_players.get(
@@ -148,9 +179,16 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 			player.velocity = data.get("velocity", Vector2.ZERO)
 			player.facing = int(data.get("facing", player.get("facing", 1)))
 			player.pose = int(data.get("pose", player.get("pose", 0)))
+			player.sequence = int(data.get("sequence", player.get("sequence", 0)))
 			#player.direction = data.direction
 
 			server_manager.remote_players[client_id] = player
+
+			var now := Time.get_ticks_msec() / 1000.0
+			var last_broadcast := float(last_movement_broadcast_time.get(client_id, 0.0))
+			if now - last_broadcast < MOVEMENT_BROADCAST_INTERVAL:
+				return
+			last_movement_broadcast_time[client_id] = now
 
 			var players_in_instance = instance_manager.get_instance_players(
 				player.map,
@@ -170,6 +208,9 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 					"velocity": player.get("velocity", Vector2.ZERO),
 					"facing": player.get("facing", 1),
 					"pose": player.get("pose", 0),
+					"sequence": player.get("sequence", 0),
+					"server_time": now,
+					"stopped": false,
 					#"direction": player.direction,
 				})
 
@@ -186,7 +227,11 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 			player.velocity = Vector2.ZERO
 			player.facing = int(data.get("facing", player.get("facing", 1)))
 			player.pose = int(data.get("pose", player.get("pose", 0)))
+			player.sequence = int(data.get("sequence", player.get("sequence", 0)))
 			server_manager.remote_players[client_id] = player
+
+			var stop_time := Time.get_ticks_msec() / 1000.0
+			last_movement_broadcast_time[client_id] = stop_time
 
 			var players_in_instance = instance_manager.get_instance_players(
 				player.map,
@@ -205,6 +250,9 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 					"velocity": Vector2.ZERO,
 					"facing": player.get("facing", 1),
 					"pose": player.get("pose", 0),
+					"sequence": player.get("sequence", 0),
+					"server_time": stop_time,
+					"stopped": true,
 				})
 
 		"c_teleport_player":
@@ -237,14 +285,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 				if other_player == null:
 					continue
 
-				players.append({
-					"id": other_client_id,
-					"position": other_player.position,
-					"velocity": other_player.get("velocity", Vector2.ZERO),
-					"direction": other_player.direction,
-					"facing": other_player.get("facing", 1),
-					"pose": other_player.get("pose", 0)
-				})
+				players.append(_make_sync_player_data(other_player))
 
 			server_manager.send_to_client(
 				client_id,
@@ -295,7 +336,7 @@ func sync_visibility_group(
 
 			if server_manager.remote_players.has(other_client_id):
 				visible_players.append(
-					server_manager.remote_players[other_client_id]
+					_make_sync_player_data(server_manager.remote_players[other_client_id])
 				)
 
 		server_manager.send_to_client(target_client_id, {
@@ -317,6 +358,12 @@ func handle_client_packet(data: Dictionary) -> void:
 
 		"s_spawn_player":
 			#logger.info("Server spawn position: %s" % data.spawn_position)
+			SceneManager.set_map_status(
+				data.get("map", SceneManager.current_map),
+				data.get("scene", SceneManager.current_scene),
+				int(data.get("instance", SceneManager.current_instance)),
+				int(data.get("map_population", 1))
+			)
 			SceneManager.player.position = data.spawn_position
 			SceneManager.player.visible = true
 
@@ -329,7 +376,15 @@ func handle_client_packet(data: Dictionary) -> void:
 
 		"s_request_sync":
 			logger.info("Server request sync")
-			
+
+			if data.has("map") or data.has("instance") or data.has("map_population"):
+				SceneManager.set_map_status(
+					data.get("map", SceneManager.current_map),
+					data.get("scene", SceneManager.current_scene),
+					int(data.get("instance", SceneManager.current_instance)),
+					int(data.get("map_population", SceneManager.current_map_population))
+				)
+
 			SceneManager.clear_remote_players()
 
 			for p in data.players:
@@ -339,6 +394,8 @@ func handle_client_packet(data: Dictionary) -> void:
 					int(p.get("facing", 1)),
 					p.get("velocity", Vector2.ZERO),
 					int(p.get("pose", 0)),
+					int(p.get("sequence", 0)),
+					bool(p.get("stopped", false)),
 				)
 
 		"s_remote_move":
@@ -349,4 +406,6 @@ func handle_client_packet(data: Dictionary) -> void:
 				int(data.get("facing", 1)),
 				data.get("velocity", Vector2.ZERO),
 				int(data.get("pose", 0)),
+				int(data.get("sequence", 0)),
+				bool(data.get("stopped", false)),
 			)

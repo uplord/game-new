@@ -12,7 +12,6 @@ func _ready() -> void:
 
 
 func _on_server_ready():
-	#print("READY")
 	SceneManager.load_map()
 	SceneManager.load_camera()
 	
@@ -24,3 +23,5 @@ func _on_server_ready():
 
 func _on_server_lost():
 	SceneManager.unload_map()
+	
+	SceneManager.game.get_node("UI").visible = false

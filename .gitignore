@@ -51,3 +51,5 @@ Desktop.ini
 RECOVER_*
 
 addons/
+
+*.uid

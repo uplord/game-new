@@ -9,7 +9,7 @@ script = ExtResource("3_vweq0")
 metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1des2"]
-size = Vector2(140, 60)
+size = Vector2(140, 40)
 
 [node name="Player" type="CharacterBody2D" unique_id=2101141243]
 script = ExtResource("1_ww0jn")

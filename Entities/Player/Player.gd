@@ -20,13 +20,13 @@ enum MouseMode {
 const HOLD_THRESHOLD := 0.2
 const FOLLOW_START_DISTANCE := 64.0
 const FOLLOW_STOP_DISTANCE := 16.0
-const HOLD_SEND_INTERVAL := 0.1
-const HOLD_TARGET_CHANGE_DISTANCE := 24.0
+const HOLD_SEND_INTERVAL := 0.033
+const HOLD_TARGET_CHANGE_DISTANCE := 6.0
 const CLICK_STOP_DISTANCE := 8.0
 const MIN_CLICK_DISTANCE := 10.0
 const MOVE_THRESHOLD := 0.01
-const POSITION_SEND_INTERVAL := 0.033
-const POSITION_SEND_DISTANCE := 2.0
+const POSITION_SEND_INTERVAL := 0.05
+const POSITION_SEND_DISTANCE := 4.0
 
 var facing := 1
 var last_facing := 1
@@ -45,6 +45,7 @@ var last_sent_hold_target := Vector2.INF
 var last_position_send_time := 0.0
 var last_sent_position := Vector2.INF
 var was_moving_last_frame := false
+var movement_sequence := 0
 
 var prev_pose: PlayerPose = PlayerPose.IDLE
 
@@ -133,8 +134,10 @@ func _physics_process(_delta: float) -> void:
 		velocity = input_vector * move_speed
 		move_and_slide()
 
+	var movement_delta := position - prev_pos
+
+	_update_facing_from_movement(movement_delta)
 	_update_movement_state(prev_pos)
-	_update_facing(input_vector)
 	_send_position_if_needed()
 	_update_camera_look_ahead()
 
@@ -142,6 +145,18 @@ func _physics_process(_delta: float) -> void:
 func _get_movement_input() -> Vector2:
 	if movement_locked:
 		return Vector2.ZERO
+
+	var keyboard_input := Input.get_vector(
+		"left_move",
+		"right_move",
+		"up_move",
+		"down_move"
+	)
+
+	if keyboard_input != Vector2.ZERO:
+		mouse_mode = MouseMode.NONE
+		follow_moving = false
+		return keyboard_input
 
 	match mouse_mode:
 		MouseMode.CLICK_MOVE:
@@ -258,7 +273,6 @@ func set_pose(pose: PlayerPose) -> void:
 
 	prev_pose = pose
 	animation_state.travel(PlayerUtil.to_anim_name(pose))
-	_send_pose_update()
 
 
 func _update_camera_look_ahead() -> void:
@@ -274,9 +288,9 @@ func _update_camera_look_ahead() -> void:
 	camera_controller.set_look_ahead_direction(horizontal_amount)
 
 
-func _update_facing(input_vector: Vector2) -> void:
-	if abs(input_vector.x) > MOVE_THRESHOLD:
-		last_facing = sign(input_vector.x)
+func _update_facing_from_movement(movement_delta: Vector2) -> void:
+	if abs(movement_delta.x) > MOVE_THRESHOLD:
+		last_facing = sign(movement_delta.x)
 
 	facing = last_facing
 
@@ -305,24 +319,26 @@ func _get_map_mouse_position() -> Vector2:
 
 	return get_global_mouse_position()
 
+func _next_movement_sequence() -> int:
+	movement_sequence += 1
+	return movement_sequence
+
+
 func _send_position_if_needed() -> void:
+	# Remote player quality depends more on a steady stream of snapshots than on
+	# sending only when the position changed by a certain distance. A distance gate
+	# creates uneven packet spacing, which makes interpolation visibly choppy.
 	if not actually_moving:
 		if was_moving_last_frame:
 			was_moving_last_frame = false
+			last_sent_position = Vector2.INF
 			_send_stop()
 		return
 
 	was_moving_last_frame = true
 
 	var now := _now()
-
 	if now - last_position_send_time < POSITION_SEND_INTERVAL:
-		return
-
-	var moved_enough := last_sent_position == Vector2.INF \
-		or last_sent_position.distance_squared_to(position) > POSITION_SEND_DISTANCE * POSITION_SEND_DISTANCE
-
-	if not moved_enough:
 		return
 
 	last_position_send_time = now
@@ -330,10 +346,10 @@ func _send_position_if_needed() -> void:
 
 	ServerManager.send_to_server({
 		"type": "c_move_player",
+		"sequence": _next_movement_sequence(),
+		"client_time": now,
 		"position": position,
 		"velocity": velocity,
-		"facing": facing,
-		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})
@@ -343,22 +359,10 @@ func _send_move(_target: Vector2) -> void:
 	# The destination is only used locally for movement.
 	ServerManager.send_to_server({
 		"type": "c_move_player",
+		"sequence": _next_movement_sequence(),
+		"client_time": _now(),
 		"position": position,
 		"velocity": velocity,
-		"facing": facing,
-		"pose": int(prev_pose),
-		"map": SceneManager.current_map,
-		"scene": SceneManager.current_scene,
-	})
-
-
-func _send_pose_update() -> void:
-	ServerManager.send_to_server({
-		"type": "c_move_player",
-		"position": position,
-		"velocity": velocity,
-		"facing": facing,
-		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})
@@ -367,10 +371,11 @@ func _send_pose_update() -> void:
 func _send_stop() -> void:
 	ServerManager.send_to_server({
 		"type": "c_stop_player",
+		"sequence": _next_movement_sequence(),
+		"client_time": _now(),
 		"position": position,
 		"velocity": Vector2.ZERO,
 		"facing": facing,
-		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})
