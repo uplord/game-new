@@ -23,7 +23,7 @@
 [ext_resource type="Texture2D" uid="uid://cd54e2sd5ici8" path="res://UI/Button/Art/Icons/Book_Icon.png" id="9_vh35o"]
 [ext_resource type="Texture2D" uid="uid://caa28k21mnukr" path="res://UI/Button/Art/Icons/Book_Trim.png" id="10_2jerp"]
 [ext_resource type="Texture2D" uid="uid://cd1iam7wl3i1" path="res://UI/Button/Art/Icons/Shield_Trim.png" id="10_017wa"]
-[ext_resource type="PackedScene" uid="uid://bi1hpc0h26ppw" path="res://UI/PlayerCard.tscn" id="14_vh35o"]
+[ext_resource type="PackedScene" uid="uid://bi1hpc0h26ppw" path="res://UI/PlayerCard/PlayerCard.tscn" id="14_vh35o"]
 
 [node name="UI" type="CanvasLayer" unique_id=452661851]
 script = ExtResource("1_6dd3c")

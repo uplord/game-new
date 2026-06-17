@@ -3,7 +3,6 @@ extends Node
 @onready var map =  get_tree().root.get_node("Game/Map")
 @onready var phantom_camera = $PhantomCamera2D
 @onready var camera_limits = map.get_node("Scene/Boundaries/CameraLimits")
-@onready var fade_cover: Node = $Cover/FadeCover
 
 @onready var bar_left: ColorRect = $Cover/BarLeft
 @onready var bar_right: ColorRect = $Cover/BarRight

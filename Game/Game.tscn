@@ -2,8 +2,36 @@
 
 [ext_resource type="Script" uid="uid://cndridmxt728g" path="res://Game/Game.gd" id="1_hqwdr"]
 [ext_resource type="PackedScene" uid="uid://cb07e8snk8lhj" path="res://UI/UI.tscn" id="2_vrr3t"]
+[ext_resource type="PackedScene" uid="uid://dk6o4tvxb5ueb" path="res://UI/MainMenu/MainMenu.tscn" id="3_p1vxh"]
+[ext_resource type="Script" uid="uid://b18efdplrienr" path="res://Game/Test.gd" id="4_37esa"]
 
 [node name="Game" type="Node2D" unique_id=247508025]
 script = ExtResource("1_hqwdr")
 
 [node name="UI" parent="." unique_id=452661851 instance=ExtResource("2_vrr3t")]
+visible = false
+
+[node name="MainMenu" parent="." unique_id=100655984 instance=ExtResource("3_p1vxh")]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1820728541]
+layer = 100
+
+[node name="FadeCover" type="ColorRect" parent="CanvasLayer" unique_id=1300806295]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Test" type="CanvasLayer" parent="." unique_id=362037039]
+script = ExtResource("4_37esa")
+
+[node name="Button" type="Button" parent="Test" unique_id=1730811463]
+offset_left = 442.0
+offset_top = 408.0
+offset_right = 540.0
+offset_bottom = 439.0
+text = "Test button
+"

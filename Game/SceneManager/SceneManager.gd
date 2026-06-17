@@ -3,6 +3,7 @@ extends Node
 signal map_status_changed
 
 @onready var game =  get_tree().root.get_node("Game")
+@onready var fade_cover = game.get_node("CanvasLayer/FadeCover")
 
 @export var current_map: String = ""
 @export var current_scene: String = ""
@@ -17,7 +18,6 @@ var DebugLogger = preload("res://Utilities/Logger.gd")
 var logger: Node
 var map: Node
 var phantom_camera: Node
-var fade_cover: Node
 
 var resize_timer: Timer
 
@@ -46,8 +46,6 @@ func setup(_scene_container: Node):
 	resize_timer.timeout.connect(func():
 		_fade_in()
 	)
-	
-	get_viewport().size_changed.connect(_on_window_resized)
 
 	current_map = default_map
 	current_scene = default_scene
@@ -56,22 +54,15 @@ func setup(_scene_container: Node):
 	map_status_changed.emit()
 
 
-func _on_window_resized() -> void:
-	pass
-	#if fade_cover == null:
-		#return
-#
-	#fade_cover.visible = true
-	#fade_cover.modulate.a = 1.0
-#
-	#if resize_timer:
-		#resize_timer.start()
-
-
 # --------------------------------------------------
 # MAP
 # --------------------------------------------------
 func load_map() -> void:
+	print("load_map")
+	fade_cover.visible = true
+	fade_cover.modulate.a = 1.0
+	await get_tree().process_frame
+	
 	if map:
 		map.queue_free()
 		map = null
@@ -89,21 +80,34 @@ func load_map() -> void:
 	map = packed_scene.instantiate()
 	game.add_child(map)
 	map_status_changed.emit()
-	
-	_setup_player()
-	
+
+	# Load the current scene first because CameraManager reads:
+	# Game/Map/Scene/Boundaries/CameraLimits during its @onready setup.
 	load_scene(current_scene)
+
+	await get_tree().process_frame
+
+	# Then create the camera, and only after that attach it to the player.
+	await load_camera()
+	await get_tree().process_frame
+
+	_setup_player()
+
+	await get_tree().process_frame
+
+	_fade_in()
 
 
 func unload_map() -> void:
 	clear_remote_players()
 
+	if player and is_instance_valid(player):
+		player.queue_free()
+		player = null
+
 	if map:
 		map.queue_free()
 		map = null
-
-	if player and player.get_parent():
-		player.get_parent().remove_child(player)
 
 	spawn_requested = false
 	current_instance = 1
@@ -143,11 +147,12 @@ func load_scene(scene_name: String) -> void:
 # PLAYER
 # --------------------------------------------------
 func _setup_player():
+	print("_setup_player")
 	if player == null:
 		player = player_scene.instantiate()
 		player.add_to_group("player")
 
-	var player_parent = get_node_or_null("Players")
+	var player_parent = map.get_node_or_null("Players")
 	if player_parent == null:
 		player_parent = Node2D.new()
 		player_parent.name = "Players"
@@ -162,8 +167,11 @@ func _setup_player():
 
 	await get_tree().process_frame
 
-	phantom_camera = game.get_node("CameraManager/PhantomCamera2D")
-	phantom_camera.follow_target = player
+	phantom_camera = game.get_node_or_null("CameraManager/PhantomCamera2D")
+	if phantom_camera:
+		phantom_camera.follow_target = player
+	else:
+		logger.error("Failed finding PhantomCamera2D after loading camera")
 
 	if not spawn_requested:
 		spawn_requested = true
@@ -194,13 +202,28 @@ func set_map_population(population: int) -> void:
 # --------------------------------------------------
 # CAMERA
 # --------------------------------------------------
-func load_camera() -> void:
+func unload_camera() -> void:
+	if phantom_camera and is_instance_valid(phantom_camera):
+		phantom_camera = null
+
 	if not game:
 		return
 
 	for child in game.get_children():
 		if child.name == "CameraManager":
 			child.queue_free()
+
+
+func load_camera() -> void:
+	print("load_camera")
+	if not game:
+		return
+
+	for child in game.get_children():
+		if child.name == "CameraManager":
+			child.queue_free()
+
+	await get_tree().process_frame
 
 	var path := "res://Game/CameraManager/CameraManager.tscn"
 
@@ -211,16 +234,11 @@ func load_camera() -> void:
 		return
 
 	var scene = packed.instantiate()
-	
-	fade_cover = scene.get_node("Cover/FadeCover")
-	fade_cover.visible = true
 
 	game.add_child(scene)
 	
 	await get_tree().process_frame
 	await get_tree().process_frame
-
-	_fade_in()
 
 
 # --------------------------------------------------
@@ -247,11 +265,6 @@ func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity
 		remote_player.set_remote_state(pos, remote_velocity, sequence, stopped, pose, facing)
 	else:
 		remote_player.set_target_position(pos)
-
-	# Do not immediately apply the newest server pose/facing here. The remote
-	# player is rendered with an interpolation delay, so applying pose/facing
-	# instantly makes keyboard movement appear to run/turn before the delayed
-	# position moves. RemotePlayer derives both from its visible movement delta.
 
 	var player_parent = map.get_node_or_null("Players")
 	if player_parent == null:
@@ -281,10 +294,6 @@ func update_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocit
 	else:
 		p.position = pos
 
-	# Do not apply the newest server facing/pose immediately here.
-	# RemotePlayer derives facing and animation from its delayed/interpolated
-	# movement, so turning only happens when the visible remote movement turns.
-
 
 func remove_remote_player(id: int):
 	if not remote_players.has(id):
@@ -300,15 +309,21 @@ func remove_remote_player(id: int):
 # FADE FUNCTIONS
 # --------------------------------------------------
 func _fade_in():
+	if player and is_instance_valid(player):
+		player.movement_locked = true
+		player.velocity = Vector2.ZERO
+		player.mouse_mode = player.MouseMode.NONE
+		player.follow_moving = false
+
 	fade_cover.visible = true
+	fade_cover.modulate.a = 1.0
 
 	var tween = create_tween()
-	tween.tween_property(fade_cover, "modulate:a", 0.0, 0.4)
-	tween.finished.connect(func(): fade_cover.visible = false)
+	tween.tween_property(fade_cover, "modulate:a", 0.0, 1.0)
 
+	await tween.finished
 
-func _fade_out():
-	fade_cover.visible = true
+	fade_cover.visible = false
 
-	var tween = create_tween()
-	tween.tween_property(fade_cover, "modulate:a", 1.0, 0.25)
+	if player and is_instance_valid(player):
+		player.movement_locked = false

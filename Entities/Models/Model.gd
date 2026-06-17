@@ -37,7 +37,9 @@ func load_model() -> void:
 
 	if selected_model.has_method("apply_model_data"):
 		selected_model.apply_model_data(model_data)
-		
+	
+	_configure_animation_tree()
+	_apply_starting_pose()
 	_apply_z_sort()
 
 func apply_default_scale() -> void:

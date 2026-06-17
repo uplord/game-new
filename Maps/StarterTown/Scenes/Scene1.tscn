@@ -1,9 +1,31 @@
 [gd_scene format=3 uid="uid://bb8eldlc15jhd"]
 
 [ext_resource type="Texture2D" uid="uid://ckxwfquxnjgay" path="res://Maps/StarterTown/Art/map-starter.png" id="1_rr3rg"]
+[ext_resource type="PackedScene" uid="uid://cdthxq6eebin7" path="res://Entities/Models/Model.tscn" id="2_qshf8"]
+[ext_resource type="Script" uid="uid://tvb3xi8lsb3p" path="res://Entities/Models/Data/Human/HumanModelData.gd" id="3_rgito"]
+[ext_resource type="Script" uid="uid://cp4pst7p8dnh3" path="res://Entities/Models/Data/BabyDragon/BabyDragonModelData.gd" id="4_rgito"]
+[ext_resource type="Script" uid="uid://6qhmyfdfow1m" path="res://Entities/Models/Data/Slime/SlimeModelData.gd" id="5_8obig"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rr3rg"]
 size = Vector2(1307, 735)
+
+[sub_resource type="Resource" id="Resource_8obig"]
+script = ExtResource("3_rgito")
+metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
+
+[sub_resource type="Resource" id="Resource_rgito"]
+script = ExtResource("3_rgito")
+facing_direction = 1
+metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
+
+[sub_resource type="Resource" id="Resource_f1vb1"]
+script = ExtResource("4_rgito")
+facing_direction = 1
+metadata/_custom_type_script = "uid://cp4pst7p8dnh3"
+
+[sub_resource type="Resource" id="Resource_7kbsl"]
+script = ExtResource("5_8obig")
+metadata/_custom_type_script = "uid://6qhmyfdfow1m"
 
 [node name="Scene1" type="Node2D" unique_id=283029346]
 
@@ -30,3 +52,28 @@ position = Vector2(-218, 166)
 
 [node name="SpawnPoint3" type="Marker2D" parent="SpawnPoints" unique_id=1142531559]
 position = Vector2(-6, 198)
+
+[node name="Objects" type="Node2D" parent="." unique_id=532033821]
+
+[node name="Model" parent="Objects" unique_id=1474508977 instance=ExtResource("2_qshf8")]
+position = Vector2(-255, -113)
+model_data = SubResource("Resource_8obig")
+animation_tree_enabled = true
+keep_animation_tree_for_player = true
+starting_pose = 1
+
+[node name="Model2" parent="Objects" unique_id=864933425 instance=ExtResource("2_qshf8")]
+position = Vector2(413, -50)
+model_data = SubResource("Resource_rgito")
+
+[node name="Model3" parent="Objects" unique_id=1377781792 instance=ExtResource("2_qshf8")]
+position = Vector2(-557, 27)
+model_data = SubResource("Resource_8obig")
+
+[node name="Model4" parent="Objects" unique_id=1217262976 instance=ExtResource("2_qshf8")]
+position = Vector2(494, 190)
+model_data = SubResource("Resource_f1vb1")
+
+[node name="Model5" parent="Objects" unique_id=129487819 instance=ExtResource("2_qshf8")]
+position = Vector2(-464, 278)
+model_data = SubResource("Resource_7kbsl")

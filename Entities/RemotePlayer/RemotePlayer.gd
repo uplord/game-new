@@ -78,10 +78,6 @@ func set_remote_state(
 			return
 		last_sequence = sequence
 
-	# Use this client's receive time for interpolation.
-	# Do not compare unsynchronised server_time with this client's local clock,
-	# because that makes keyboard movement appear immediately instead of after
-	# the interpolation delay.
 	var snapshot_time := _now()
 
 	var clean_velocity := vel

@@ -49,11 +49,9 @@ func _style_bar(bar: ProgressBar, fill_color: Color, bg_color: Color) -> void:
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = fill_color
 
-	# Always round left side
 	fill.corner_radius_top_left = radius
 	fill.corner_radius_bottom_left = radius
 
-	# Only round right side when full
 	if is_equal_approx(bar.value, bar.max_value):
 		fill.corner_radius_top_right = radius
 		fill.corner_radius_bottom_right = radius

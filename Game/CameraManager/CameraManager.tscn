@@ -56,12 +56,3 @@ visible = false
 offset_right = 40.0
 offset_bottom = 40.0
 color = Color(0, 0, 0, 1)
-
-[node name="FadeCover" type="ColorRect" parent="Cover" unique_id=914208041]
-visible = false
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 1)

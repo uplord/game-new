@@ -1,19 +1,47 @@
 extends Node2D
 
-@onready var container = self
+@onready var container: Node = self
+@onready var ui: CanvasLayer = $UI
+@onready var main_menu: CanvasLayer = $MainMenu
+
+var _client_started := false
+
 
 func _ready() -> void:
 	SceneManager.setup(container)
 
-	if not ServerManager.is_server:	
-		ServerManager.start_client(ServerManager.SERVER_IP)
-		ServerManager.server_lost.connect(_on_server_lost)
-		ServerManager.server_ready.connect(_on_server_ready)
+	ui.visible = false
+	main_menu.visible = true
+
+	if main_menu.has_signal("start_pressed") and not main_menu.start_pressed.is_connected(_on_main_menu_start_pressed):
+		main_menu.start_pressed.connect(_on_main_menu_start_pressed)
+
+	if not ServerManager.is_server:
+		if not ServerManager.server_lost.is_connected(_on_server_lost):
+			ServerManager.server_lost.connect(_on_server_lost)
+		if not ServerManager.server_ready.is_connected(_on_server_ready):
+			ServerManager.server_ready.connect(_on_server_ready)
 
 
-func _on_server_ready():
-	SceneManager.load_map()
-	SceneManager.load_camera()
+func _on_main_menu_start_pressed() -> void:
+	start_client_from_menu()
+
+
+func start_client_from_menu() -> void:
+	if ServerManager.is_server or _client_started:
+		return
+
+	_client_started = true
+	main_menu.visible = false
+	ui.visible = false
+	ServerManager.start_client(ServerManager.SERVER_IP)
+
+
+func _on_server_ready() -> void:
+	ui.visible = true
+	main_menu.visible = false
+
+	await SceneManager.load_map()
 	
 	await get_tree().process_frame
 	ServerManager.send_to_server({
@@ -21,7 +49,10 @@ func _on_server_ready():
 	})
 
 
-func _on_server_lost():
+func _on_server_lost() -> void:
+	_client_started = false
 	SceneManager.unload_map()
-	
-	SceneManager.game.get_node("UI").visible = false
+	SceneManager.unload_camera()
+
+	ui.visible = false
+	main_menu.visible = true

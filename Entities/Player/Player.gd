@@ -57,6 +57,8 @@ func _ready() -> void:
 	body.keep_animation_tree_for_player = true
 	body.starting_pose = PlayerPose.IDLE
 	
+	print(111)
+	
 	var model: Node = body.get_model_root()
 	if model == null:
 		push_error("Model not loaded")
@@ -79,6 +81,7 @@ func _ready() -> void:
 	animation_state.travel("Idle")
 
 	camera_controller = game.get_node("CameraManager")
+	print("camera_controller", camera_controller)
 	body_start_scale = body.scale
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -276,7 +279,8 @@ func set_pose(pose: PlayerPose) -> void:
 
 
 func _update_camera_look_ahead() -> void:
-	if camera_controller == null:
+	if camera_controller == null or not is_instance_valid(camera_controller):
+		camera_controller = null
 		return
 
 	var move_speed := _get_move_speed()
@@ -325,9 +329,6 @@ func _next_movement_sequence() -> int:
 
 
 func _send_position_if_needed() -> void:
-	# Remote player quality depends more on a steady stream of snapshots than on
-	# sending only when the position changed by a certain distance. A distance gate
-	# creates uneven packet spacing, which makes interpolation visibly choppy.
 	if not actually_moving:
 		if was_moving_last_frame:
 			was_moving_last_frame = false
@@ -355,8 +356,6 @@ func _send_position_if_needed() -> void:
 	})
 
 func _send_move(_target: Vector2) -> void:
-	# Send the player's current position, not the clicked destination.
-	# The destination is only used locally for movement.
 	ServerManager.send_to_server({
 		"type": "c_move_player",
 		"sequence": _next_movement_sequence(),
