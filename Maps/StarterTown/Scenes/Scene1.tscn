@@ -13,10 +13,11 @@ size = Vector2(1307, 735)
 script = ExtResource("3_rgito")
 metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
 
-[sub_resource type="Resource" id="Resource_rgito"]
-script = ExtResource("3_rgito")
+[sub_resource type="Resource" id="Resource_fmqbo"]
+script = ExtResource("5_8obig")
+body_type = "King"
 facing_direction = 1
-metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
+metadata/_custom_type_script = "uid://6qhmyfdfow1m"
 
 [sub_resource type="Resource" id="Resource_f1vb1"]
 script = ExtResource("4_rgito")
@@ -25,6 +26,11 @@ metadata/_custom_type_script = "uid://cp4pst7p8dnh3"
 
 [sub_resource type="Resource" id="Resource_7kbsl"]
 script = ExtResource("5_8obig")
+metadata/_custom_type_script = "uid://6qhmyfdfow1m"
+
+[sub_resource type="Resource" id="Resource_k74ew"]
+script = ExtResource("5_8obig")
+body_type = "Adult"
 metadata/_custom_type_script = "uid://6qhmyfdfow1m"
 
 [node name="Scene1" type="Node2D" unique_id=283029346]
@@ -58,13 +64,11 @@ position = Vector2(-6, 198)
 [node name="Model" parent="Objects" unique_id=1474508977 instance=ExtResource("2_qshf8")]
 position = Vector2(-255, -113)
 model_data = SubResource("Resource_8obig")
-animation_tree_enabled = true
-keep_animation_tree_for_player = true
 starting_pose = 1
 
 [node name="Model2" parent="Objects" unique_id=864933425 instance=ExtResource("2_qshf8")]
-position = Vector2(413, -50)
-model_data = SubResource("Resource_rgito")
+position = Vector2(442, -106)
+model_data = SubResource("Resource_fmqbo")
 
 [node name="Model3" parent="Objects" unique_id=1377781792 instance=ExtResource("2_qshf8")]
 position = Vector2(-557, 27)
@@ -77,3 +81,7 @@ model_data = SubResource("Resource_f1vb1")
 [node name="Model5" parent="Objects" unique_id=129487819 instance=ExtResource("2_qshf8")]
 position = Vector2(-464, 278)
 model_data = SubResource("Resource_7kbsl")
+
+[node name="Model6" parent="Objects" unique_id=555545261 instance=ExtResource("2_qshf8")]
+position = Vector2(-45, -135)
+model_data = SubResource("Resource_k74ew")

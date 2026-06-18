@@ -17,7 +17,7 @@ bg_color = Color(0.6, 0.6, 0.6, 0)
 
 [node name="Button" type="Button" unique_id=1306766417]
 clip_contents = true
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(40, 40)
 size_flags_vertical = 8
 theme_override_styles/normal = SubResource("StyleBoxFlat_xg2gh")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_83xgs")

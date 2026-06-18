@@ -1,0 +1,283 @@
+[gd_scene format=3 uid="uid://0kf0lqvcb382"]
+
+[ext_resource type="Script" uid="uid://bgl7qj8webew0" path="res://UI/Modal/Modal.gd" id="1_it6kh"]
+[ext_resource type="PackedScene" uid="uid://0wn6iixn2ehd" path="res://UI/Button/Button.tscn" id="2_2hhmj"]
+[ext_resource type="Texture2D" uid="uid://bho4gdxg322kx" path="res://UI/Button/Art/Icons/Close_Icon.png" id="3_754qu"]
+[ext_resource type="Texture2D" uid="uid://d147x3ytu0q61" path="res://UI/Button/Art/Icons/Close_Trim.png" id="4_5al0b"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o52hm"]
+bg_color = Color(0.2, 0.2, 0.2, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8fnil"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="Modal" type="Control" unique_id=1171696281]
+z_index = 4000
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_it6kh")
+
+[node name="Background" type="Panel" parent="." unique_id=780960080]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1747867256]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=93533700]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Top" type="Control" parent="MarginContainer/VBoxContainer" unique_id=2008933479]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="Panel" type="Panel" parent="MarginContainer/VBoxContainer/Top" unique_id=1534358564]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_o52hm")
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/Top/Panel" unique_id=1810885216]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 56.0
+grow_horizontal = 2
+size_flags_vertical = 0
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Top/Panel/MarginContainer" unique_id=598234764]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 2
+
+[node name="Button" parent="MarginContainer/VBoxContainer/Top/Panel/MarginContainer/HBoxContainer" unique_id=1306766417 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+icon_image = ExtResource("3_754qu")
+icon_trim = ExtResource("4_5al0b")
+icon_scale = 0.4
+
+[node name="Main" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1349665450]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Panel" type="Panel" parent="MarginContainer/VBoxContainer/Main" unique_id=1930541987]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_8fnil")
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/Main" unique_id=1815413349]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/Main/MarginContainer" unique_id=1555855505]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer" unique_id=1423742753]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="Button" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=1648275737 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button2" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=135366195 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button3" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=1313228104 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button4" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=799683147 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button5" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=160528940 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button6" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=319985870 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button7" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=1786759521 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button8" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=927504633 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button9" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=1545255805 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button10" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=394054476 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button11" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=956127849 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Button12" parent="MarginContainer/VBoxContainer/Main/MarginContainer/ScrollContainer/VBoxContainer" unique_id=380500575 instance=ExtResource("2_2hhmj")]
+layout_mode = 2
+mouse_filter = 1
+text = "Item name goes here"
+text_alignment = 0
+full_width = true
+font_size = 12.0
+border_size = 0.0
+radius_size = 0.0
+bg_color = Color(0.2, 0.2, 0.2, 1)
+bg_color_hover = Color(0.2, 0.2, 0.2, 1)
+bg_color_pressed = Color(0.2, 0.2, 0.2, 1)
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Top/Panel/MarginContainer/HBoxContainer/Button" to="." method="_on_button_pressed"]

@@ -57,8 +57,6 @@ func _ready() -> void:
 	body.keep_animation_tree_for_player = true
 	body.starting_pose = PlayerPose.IDLE
 	
-	print(111)
-	
 	var model: Node = body.get_model_root()
 	if model == null:
 		push_error("Model not loaded")
@@ -81,7 +79,6 @@ func _ready() -> void:
 	animation_state.travel("Idle")
 
 	camera_controller = game.get_node("CameraManager")
-	print("camera_controller", camera_controller)
 	body_start_scale = body.scale
 
 func _unhandled_input(event: InputEvent) -> void:

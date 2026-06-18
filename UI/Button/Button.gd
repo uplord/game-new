@@ -15,14 +15,10 @@ enum TextAlignment {
 
 @export var text_alignment: TextAlignment = TextAlignment.CENTER
 
-@export var button_width: float = 48.0
-@export var button_height: float = 48.0
 @export var full_width: bool = false
 
-@export var padding_left: float = 16.0
-@export var padding_right: float = 16.0
-@export var padding_top: float = 8.0
-@export var padding_bottom: float = 8.0
+@export var padding_x: float = 16.0
+@export var padding_y: float = 8.0
 
 @export var font_size: float = 16.0
 @export var border_size: float = 1.0
@@ -41,41 +37,23 @@ enum TextAlignment {
 
 const BASE_VIEWPORT_SIZE := Vector2(1920.0, 1080.0)
 
-var display_scale: float = DisplayServer.screen_get_scale()
-
-
 func _ready() -> void:
 	_apply_button_style()
-	_update_icon_size()
-
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED:
-		_apply_button_style()
-		_update_icon_size()
 
 
 func _apply_button_style() -> void:
-	var scaled_font_size := font_size * display_scale
-	var scaled_border_size := border_size * display_scale
-	var scaled_radius_size := radius_size * display_scale
-	
 	if full_width:
-		custom_minimum_size = Vector2(0, button_height * display_scale)
+		custom_minimum_size = Vector2(0, custom_minimum_size.y)
 		size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	else:
-		var scaled_size := Vector2(button_width, button_height) * display_scale
-		custom_minimum_size = scaled_size
-		size = scaled_size
-		size_flags_horizontal = Control.SIZE_FILL
 
-	add_theme_font_size_override("font_size", int(round(scaled_font_size)))
 	add_theme_color_override("font_color", font_color)
+	add_theme_font_size_override("font_size", int(font_size))
 
 	_apply_text_alignment()
 
-	_apply_button_state_styles(scaled_border_size, scaled_radius_size)
-	_apply_offset_panel_style(scaled_border_size, scaled_radius_size)
+	_apply_button_state_styles()
+	_apply_offset_panel_style()
+	_update_icon_size()
 
 
 func _apply_text_alignment() -> void:
@@ -87,15 +65,7 @@ func _apply_text_alignment() -> void:
 		TextAlignment.RIGHT:
 			alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
-func _apply_button_state_styles(
-	scaled_border_size: float,
-	scaled_radius_size: float
-) -> void:
-	var scaled_padding_left := padding_left * display_scale
-	var scaled_padding_right := padding_right * display_scale
-	var scaled_padding_top := padding_top * display_scale
-	var scaled_padding_bottom := padding_bottom * display_scale
-	
+func _apply_button_state_styles() -> void:
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var stylebox := get_theme_stylebox(state)
 
@@ -104,23 +74,23 @@ func _apply_button_state_styles(
 
 		var flat_stylebox := stylebox.duplicate() as StyleBoxFlat
 
-		var border := int(round(scaled_border_size))
-		var radius := int(round(scaled_radius_size))
+		var radius := int(round(radius_size))
+		var border := int(round(border_size))
+
+		flat_stylebox.corner_radius_top_left = radius
+		flat_stylebox.corner_radius_top_right = radius
+		flat_stylebox.corner_radius_bottom_left = radius
+		flat_stylebox.corner_radius_bottom_right = radius
 
 		flat_stylebox.border_width_left = border
 		flat_stylebox.border_width_right = border
 		flat_stylebox.border_width_top = border
 		flat_stylebox.border_width_bottom = border
 
-		flat_stylebox.corner_radius_top_left = radius
-		flat_stylebox.corner_radius_top_right = radius
-		flat_stylebox.corner_radius_bottom_left = radius
-		flat_stylebox.corner_radius_bottom_right = radius
-		
-		flat_stylebox.content_margin_left = scaled_padding_left
-		flat_stylebox.content_margin_right = scaled_padding_right
-		flat_stylebox.content_margin_top = scaled_padding_top
-		flat_stylebox.content_margin_bottom = scaled_padding_bottom
+		flat_stylebox.content_margin_left = padding_x
+		flat_stylebox.content_margin_right = padding_x
+		flat_stylebox.content_margin_top = padding_y
+		flat_stylebox.content_margin_bottom = padding_y
 
 		flat_stylebox.border_color = border_color
 		flat_stylebox.bg_color = _get_state_background_color(state)
@@ -143,8 +113,6 @@ func _get_state_background_color(state: String) -> Color:
 
 
 func _apply_offset_panel_style(
-	scaled_border_size: float,
-	scaled_radius_size: float
 ) -> void:
 	var panel := get_node_or_null("Panel") as Panel
 
@@ -156,12 +124,10 @@ func _apply_offset_panel_style(
 	if not stylebox is StyleBoxFlat:
 		return
 
-	var scaled_offset_border_size := offset_border_size * display_scale
-	var inner_radius = max(0.0, scaled_radius_size - scaled_border_size)
+	var inner_radius = max(0.0, radius_size - border_size)
 
-	var border := int(round(scaled_border_size))
-	var offset_border := int(round(scaled_offset_border_size))
-	var radius := int(round(inner_radius))
+	var border = border_size
+	var radius = inner_radius
 
 	panel.anchor_left = 0.0
 	panel.anchor_top = 0.0
@@ -175,6 +141,7 @@ func _apply_offset_panel_style(
 
 	var flat_stylebox := stylebox.duplicate() as StyleBoxFlat
 
+	var offset_border := int(round(offset_border_size))
 	flat_stylebox.border_width_left = offset_border
 	flat_stylebox.border_width_right = offset_border
 	flat_stylebox.border_width_top = offset_border

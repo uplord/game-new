@@ -65,15 +65,13 @@ func apply_orientation_zoom():
 	var safe_area: Rect2i = DisplayServer.get_display_safe_area()
 	var screen_size := get_viewport().get_visible_rect().size
 	
-	look_ahead_distance = (screen_size.x * 0.5) - (32.0 * DisplayServer.screen_get_scale())
+	look_ahead_distance = (screen_size.x * 0.5) - 32.0
 
 	if screen_size.y > screen_size.x:
-		var top_safe := float(safe_area.position.y)
-		var bottom_safe := screen_size.y - float(safe_area.position.y + safe_area.size.y)
-
+		var top_safe := float(safe_area.position.y / DisplayServer.screen_get_scale())
+		var bottom_safe := screen_size.y - float((safe_area.position.y + safe_area.size.y) / DisplayServer.screen_get_scale())
 		var screen_extra := (screen_size.y - screen_size.x) / 2.0
 		var remaining_height := screen_size.y - screen_extra - top_safe - bottom_safe
-
 		map_scale = remaining_height / BASE_SIZE.x
 		game_offset = ((screen_extra + top_safe) - bottom_safe) / 2.0
 	else:
@@ -111,7 +109,9 @@ func apply_camera_limits() -> void:
 
 
 func is_mobile() -> bool:
-	return OS.get_name() == "Android" or OS.get_name() == "iOS"
+	return OS.has_feature("android") or (
+		OS.has_feature("ios") and not OS.has_feature("ipad")
+	)
 
 
 func apply_black_bars() -> void:

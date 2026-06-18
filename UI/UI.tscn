@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://douasrbm8d75v" path="res://UI/UI.gd" id="1_6dd3c"]
 [ext_resource type="PackedScene" uid="uid://0wn6iixn2ehd" path="res://UI/Button/Button.tscn" id="2_dhe1o"]
-[ext_resource type="PackedScene" uid="uid://0kf0lqvcb382" path="res://UI/InventoryMenu/InventoryMenu.tscn" id="2_idhk4"]
+[ext_resource type="PackedScene" uid="uid://0kf0lqvcb382" path="res://UI/Modal/Modal.tscn" id="2_idhk4"]
 [ext_resource type="Texture2D" uid="uid://clabb05un0c0y" path="res://UI/Button/Art/Icons/Skull_Icon.png" id="3_e707p"]
 [ext_resource type="Texture2D" uid="uid://e0s7vu8i1gpv" path="res://UI/Button/Art/Icons/Sword_Icon.png" id="3_jqf55"]
 [ext_resource type="Texture2D" uid="uid://ckc7o4af31l60" path="res://UI/Button/Art/Icons/Settings_Icon.png" id="3_t31p1"]
@@ -38,12 +38,11 @@ grow_vertical = 2
 focus_behavior_recursive = 1
 mouse_filter = 2
 
-[node name="InventoryMenu" parent="UIFrame" unique_id=1171696281 instance=ExtResource("2_idhk4")]
+[node name="Modal" parent="UIFrame" unique_id=1171696281 instance=ExtResource("2_idhk4")]
 visible = false
 layout_mode = 1
 
 [node name="TopUI" type="Control" parent="UIFrame" unique_id=937503249]
-custom_minimum_size = Vector2(0, 128)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -57,18 +56,17 @@ anchor_right = 1.0
 offset_bottom = 128.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
 
 [node name="BoxContainer" type="BoxContainer" parent="UIFrame/TopUI/MarginContainer" unique_id=145782575]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
 [node name="CardsContainer" type="HBoxContainer" parent="UIFrame/TopUI/MarginContainer/BoxContainer" unique_id=2083543804]
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
 [node name="PlayerCard" parent="UIFrame/TopUI/MarginContainer/BoxContainer/CardsContainer" unique_id=1634028173 instance=ExtResource("14_vh35o")]
@@ -80,12 +78,13 @@ layout_mode = 2
 
 [node name="MenuButtons" type="HBoxContainer" parent="UIFrame/TopUI/MarginContainer/BoxContainer" unique_id=1461098348]
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 0
 mouse_filter = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
 [node name="Button5" parent="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons" unique_id=407696969 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(96, 96)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("7_1sm7k")
 icon_trim = ExtResource("8_xtxff")
@@ -93,7 +92,7 @@ offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
 [node name="Button4" parent="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons" unique_id=999951833 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(96, 96)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("9_vh35o")
 icon_trim = ExtResource("10_2jerp")
@@ -101,7 +100,7 @@ offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
 [node name="Button3" parent="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons" unique_id=1128221780 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(96, 96)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("7_uk6e0")
 icon_trim = ExtResource("8_idhk4")
@@ -109,7 +108,7 @@ offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
 [node name="Button2" parent="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons" unique_id=958894832 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(96, 96)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("5_1sm7k")
 icon_trim = ExtResource("6_xtxff")
@@ -117,7 +116,7 @@ offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
 [node name="Button" parent="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons" unique_id=1306766417 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(96, 96)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("3_t31p1")
 icon_trim = ExtResource("4_kncd2")
@@ -125,7 +124,6 @@ offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
 [node name="BottomUI" type="Control" parent="UIFrame" unique_id=253297728]
-custom_minimum_size = Vector2(0, 212)
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -141,87 +139,81 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -192.0
+offset_top = -119.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
 
 [node name="BoxContainer" type="BoxContainer" parent="UIFrame/BottomUI/MarginContainer" unique_id=1437395086]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 vertical = true
 
 [node name="LabelMap" type="Label" parent="UIFrame/BottomUI/MarginContainer/BoxContainer" unique_id=837472051]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
+theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
 
 [node name="BattleButtons" type="HBoxContainer" parent="UIFrame/BottomUI/MarginContainer/BoxContainer" unique_id=406334373]
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 8
 mouse_filter = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 alignment = 1
 
 [node name="Button" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=1154951194 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(128, 128)
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 icon_image = ExtResource("3_jqf55")
 icon_trim = ExtResource("4_byuxr")
 icon_scale = 0.7
-button_width = 64.0
-button_height = 64.0
 offset_border_size = 3.0
 offset_border_color = Color(0.13256624, 0.46680832, 0.82312787, 1)
 
 [node name="Button2" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=1403877392 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(128, 128)
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 icon_image = ExtResource("5_d050y")
 icon_trim = ExtResource("6_qgmx8")
 icon_scale = 0.7
-button_width = 64.0
-button_height = 64.0
 offset_border_size = 3.0
 offset_border_color = Color(0.28482145, 0.53168553, 0.28954268, 1)
 
 [node name="Button3" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=1409810601 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(128, 128)
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 icon_image = ExtResource("7_vx7wu")
 icon_trim = ExtResource("8_r2vy3")
-button_width = 64.0
-button_height = 64.0
 offset_border_size = 3.0
 offset_border_color = Color(0.71530914, 0.3546525, 0.030110309, 1)
 
 [node name="Button4" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=1209196552 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(128, 128)
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 icon_image = ExtResource("9_qhxh2")
 icon_trim = ExtResource("10_017wa")
-button_width = 64.0
-button_height = 64.0
 offset_border_size = 3.0
 offset_border_color = Color(0.60617167, 0.14652899, 0.76218367, 1)
 
 [node name="Button5" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=129578459 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(160, 160)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 icon_image = ExtResource("3_e707p")
 icon_trim = ExtResource("4_f1fl4")
 icon_scale = 0.75
-button_width = 80.0
-button_height = 80.0
 offset_border_size = 3.0
 offset_border_color = Color(0.8357183, 3.2247603e-06, 7.70092e-07, 1)
 
-[connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button5" to="." method="_on_inventory_pressed"]
+[connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button5" to="." method="_on_modal_pressed"]
+[connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button4" to="." method="_on_modal_pressed"]
+[connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button3" to="." method="_on_modal_pressed"]
+[connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button2" to="." method="_on_modal_pressed"]
 [connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button" to="." method="_on_disconnect_pressed"]
 [connection signal="pressed" from="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons/Button5" to="." method="_on_button_5_pressed"]

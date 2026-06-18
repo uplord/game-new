@@ -8,6 +8,8 @@ var _client_started := false
 
 
 func _ready() -> void:
+	apply_ui_scale()
+
 	SceneManager.setup(container)
 
 	ui.visible = false
@@ -23,6 +25,13 @@ func _ready() -> void:
 			ServerManager.server_ready.connect(_on_server_ready)
 
 
+func apply_ui_scale():
+	var screen := DisplayServer.window_get_current_screen()
+	var ui_scale := DisplayServer.screen_get_scale(screen)
+
+	get_window().content_scale_factor = ui_scale
+
+
 func _on_main_menu_start_pressed() -> void:
 	start_client_from_menu()
 
@@ -32,14 +41,12 @@ func start_client_from_menu() -> void:
 		return
 
 	_client_started = true
-	main_menu.visible = false
 	ui.visible = false
 	ServerManager.start_client(ServerManager.SERVER_IP)
 
 
 func _on_server_ready() -> void:
 	ui.visible = true
-	main_menu.visible = false
 
 	await SceneManager.load_map()
 	
@@ -56,3 +63,6 @@ func _on_server_lost() -> void:
 
 	ui.visible = false
 	main_menu.visible = true
+
+	if main_menu.has_method("start_connect_cooldown"):
+		main_menu.start_connect_cooldown(5)

@@ -3,35 +3,49 @@
 [ext_resource type="Script" uid="uid://cndridmxt728g" path="res://Game/Game.gd" id="1_hqwdr"]
 [ext_resource type="PackedScene" uid="uid://cb07e8snk8lhj" path="res://UI/UI.tscn" id="2_vrr3t"]
 [ext_resource type="PackedScene" uid="uid://dk6o4tvxb5ueb" path="res://UI/MainMenu/MainMenu.tscn" id="3_p1vxh"]
-[ext_resource type="Script" uid="uid://b18efdplrienr" path="res://Game/Test.gd" id="4_37esa"]
 
 [node name="Game" type="Node2D" unique_id=247508025]
 script = ExtResource("1_hqwdr")
 
 [node name="UI" parent="." unique_id=452661851 instance=ExtResource("2_vrr3t")]
-visible = false
 
 [node name="MainMenu" parent="." unique_id=100655984 instance=ExtResource("3_p1vxh")]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1820728541]
 layer = 100
 
-[node name="FadeCover" type="ColorRect" parent="CanvasLayer" unique_id=1300806295]
+[node name="LoadingScreen" type="ColorRect" parent="CanvasLayer" unique_id=1300806295]
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 color = Color(0, 0, 0, 1)
 
-[node name="Test" type="CanvasLayer" parent="." unique_id=362037039]
-script = ExtResource("4_37esa")
+[node name="CenterContainer" type="CenterContainer" parent="CanvasLayer/LoadingScreen" unique_id=1166321889]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="Button" type="Button" parent="Test" unique_id=1730811463]
-offset_left = 442.0
-offset_top = 408.0
-offset_right = 540.0
-offset_bottom = 439.0
-text = "Test button
-"
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/LoadingScreen/CenterContainer" unique_id=318763931]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="CanvasLayer/LoadingScreen/CenterContainer/VBoxContainer" unique_id=993352591]
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_font_sizes/font_size = 28
+text = "Loading"
+horizontal_alignment = 1
+
+[node name="Message" type="Label" parent="CanvasLayer/LoadingScreen/CenterContainer/VBoxContainer" unique_id=2016283668]
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_font_sizes/font_size = 16
+text = "Preparing map..."
+horizontal_alignment = 1

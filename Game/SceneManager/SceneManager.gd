@@ -3,7 +3,9 @@ extends Node
 signal map_status_changed
 
 @onready var game =  get_tree().root.get_node("Game")
-@onready var fade_cover = game.get_node("CanvasLayer/FadeCover")
+@onready var loading_screen: ColorRect = game.get_node("CanvasLayer/LoadingScreen")
+@onready var loading_title: Label = game.get_node("CanvasLayer/LoadingScreen/CenterContainer/VBoxContainer/Title")
+@onready var loading_message: Label = game.get_node("CanvasLayer/LoadingScreen/CenterContainer/VBoxContainer/Message")
 
 @export var current_map: String = ""
 @export var current_scene: String = ""
@@ -58,9 +60,7 @@ func setup(_scene_container: Node):
 # MAP
 # --------------------------------------------------
 func load_map() -> void:
-	print("load_map")
-	fade_cover.visible = true
-	fade_cover.modulate.a = 1.0
+	_show_loading_screen("Loading", "Preparing map...")
 	await get_tree().process_frame
 	
 	if map:
@@ -77,6 +77,7 @@ func load_map() -> void:
 		logger.error("Failed loading map: %s" % map_path)
 		return
 
+	_show_loading_screen("Loading", "Building map...")
 	map = packed_scene.instantiate()
 	game.add_child(map)
 	map_status_changed.emit()
@@ -87,15 +88,23 @@ func load_map() -> void:
 
 	await get_tree().process_frame
 
+	_show_loading_screen("Loading", "Loading scene...")
+	await get_tree().process_frame
+
 	# Then create the camera, and only after that attach it to the player.
+	_show_loading_screen("Loading", "Setting up camera...")
 	await load_camera()
 	await get_tree().process_frame
 
-	_setup_player()
+	_show_loading_screen("Loading", "Spawning player...")
+	await _setup_player()
 
+	await get_tree().create_timer(1.0).timeout
+	
+	_show_loading_screen("", "")
 	await get_tree().process_frame
 
-	_fade_in()
+	await _hide_loading_screen()
 
 
 func unload_map() -> void:
@@ -147,7 +156,6 @@ func load_scene(scene_name: String) -> void:
 # PLAYER
 # --------------------------------------------------
 func _setup_player():
-	print("_setup_player")
 	if player == null:
 		player = player_scene.instantiate()
 		player.add_to_group("player")
@@ -215,7 +223,6 @@ func unload_camera() -> void:
 
 
 func load_camera() -> void:
-	print("load_camera")
 	if not game:
 		return
 
@@ -306,6 +313,38 @@ func remove_remote_player(id: int):
 
 
 # --------------------------------------------------
+# LOADING SCREEN
+# --------------------------------------------------
+func _show_loading_screen(title: String = "Loading", message: String = "") -> void:
+	var main_menu = game.get_node("MainMenu")
+	main_menu.visible = false
+	loading_screen.visible = true
+	loading_screen.modulate.a = 1.0
+	loading_title.text = title
+	loading_message.text = message
+
+
+func _hide_loading_screen() -> void:
+	if player and is_instance_valid(player):
+		player.movement_locked = true
+		player.velocity = Vector2.ZERO
+		player.mouse_mode = player.MouseMode.NONE
+		player.follow_moving = false
+
+	loading_screen.visible = true
+	loading_screen.modulate.a = 1.0
+
+	var tween = create_tween()
+	tween.tween_property(loading_screen, "modulate:a", 0.0, 1.0)
+
+	await tween.finished
+
+	loading_screen.visible = false
+
+	if player and is_instance_valid(player):
+		player.movement_locked = false
+
+
 # FADE FUNCTIONS
 # --------------------------------------------------
 func _fade_in():
@@ -315,15 +354,15 @@ func _fade_in():
 		player.mouse_mode = player.MouseMode.NONE
 		player.follow_moving = false
 
-	fade_cover.visible = true
-	fade_cover.modulate.a = 1.0
+	loading_screen.visible = true
+	loading_screen.modulate.a = 1.0
 
 	var tween = create_tween()
-	tween.tween_property(fade_cover, "modulate:a", 0.0, 1.0)
+	tween.tween_property(loading_screen, "modulate:a", 0.0, 1.0)
 
 	await tween.finished
 
-	fade_cover.visible = false
+	loading_screen.visible = false
 
 	if player and is_instance_valid(player):
 		player.movement_locked = false
