@@ -17,6 +17,9 @@
 [ext_resource type="Texture2D" uid="uid://2s7lmujtdso7" path="res://Entities/Models/Data/Human/Art/Male/front_hand/armour.png" id="13_cf08s"]
 [ext_resource type="Texture2D" uid="uid://b13augs8ykga1" path="res://Entities/Items/Swords/Base/item.png" id="14_njpkb"]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_target"]
+size = Vector2(180, 260)
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_xhgp6"]
 shader = ExtResource("2_njpkb")
 shader_parameter/opacity = 0.10000000475
@@ -1391,19 +1394,26 @@ graph_offset = Vector2(28.66375, -3.7598455)
 [node name="Human" type="Node2D" unique_id=1033224331]
 script = ExtResource("1_d0nwc")
 
+[node name="TargetArea" type="Area2D" parent="." unique_id=353566895]
+position = Vector2(0, -110)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TargetArea" unique_id=1340130367]
+shape = SubResource("RectangleShape2D_target")
+
 [node name="Shadow" type="ColorRect" parent="." unique_id=961810210]
 material = SubResource("ShaderMaterial_xhgp6")
 offset_left = -80.0
 offset_top = -21.0
 offset_right = 80.0
 offset_bottom = 21.0
+mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
 [node name="Body" type="Node2D" parent="." unique_id=1436983282]
 
 [node name="OtherWeapon" type="Node2D" parent="Body" unique_id=1297142218]
-position = Vector2(78.1262, -145.23485)
-rotation = -1.6288633
+position = Vector2(53.312485, -112.12479)
 scale = Vector2(0.2499998, 0.2499998)
 
 [node name="Skin" type="Sprite2D" parent="Body/OtherWeapon" unique_id=500984809]
@@ -1413,8 +1423,7 @@ texture = ExtResource("2_yt0k3")
 offset = Vector2(-385.9, 5)
 
 [node name="BackHand" type="Node2D" parent="Body" unique_id=269440252]
-position = Vector2(46.15802, -127.599884)
-rotation = -1.6288633
+position = Vector2(37.562496, -145.06252)
 scale = Vector2(0.24999984, 0.24999984)
 
 [node name="Skin" type="Sprite2D" parent="Body/BackHand" unique_id=925238504]
@@ -1423,8 +1432,7 @@ texture = ExtResource("2_xjma0")
 offset = Vector2(-162.5, 930)
 
 [node name="BackShoulder" type="Node2D" parent="Body" unique_id=435726893]
-position = Vector2(34.371605, -158.72691)
-rotation = -0.033095233
+position = Vector2(26.8125, -176.5625)
 scale = Vector2(0.24999988, 0.24999988)
 
 [node name="Skin" type="Sprite2D" parent="Body/BackShoulder" unique_id=798670744]
@@ -1433,8 +1441,7 @@ texture = ExtResource("3_yt0k3")
 offset = Vector2(-117.5, 1108.25)
 
 [node name="BackThigh" type="Node2D" parent="Body" unique_id=130985770]
-position = Vector2(15.04253, -99.41998)
-rotation = 0.52508223
+position = Vector2(18.4375, -114.75)
 scale = Vector2(0.24999985, 0.24999985)
 
 [node name="Skin" type="Sprite2D" parent="Body/BackThigh" unique_id=223467523]
@@ -1443,9 +1450,8 @@ texture = ExtResource("4_njpkb")
 offset = Vector2(-54, 754)
 
 [node name="BackFoot" type="Node2D" parent="Body" unique_id=491683133]
-position = Vector2(-46.581882, -87.5309)
-rotation = 2.302135
-scale = Vector2(0.24999987, 0.24999987)
+position = Vector2(22.874996, -16.750061)
+scale = Vector2(0.24999985, 0.24999985)
 
 [node name="Skin" type="Sprite2D" parent="Body/BackFoot" unique_id=444948039]
 position = Vector2(111.75, -90.25)
@@ -1453,8 +1459,7 @@ texture = ExtResource("6_yov1d")
 offset = Vector2(-74.75, 115.75)
 
 [node name="BackShin" type="Node2D" parent="Body" unique_id=1690427507]
-position = Vector2(-3.8351974, -57.483555)
-rotation = 2.1786923
+position = Vector2(23.124996, -69.00003)
 scale = Vector2(0.24999985, 0.24999985)
 
 [node name="Skin" type="Sprite2D" parent="Body/BackShin" unique_id=1685913833]
@@ -1463,8 +1468,7 @@ texture = ExtResource("5_xhgp6")
 offset = Vector2(-123.75, 505.5)
 
 [node name="Chest" type="Node2D" parent="Body" unique_id=602349470]
-position = Vector2(11, -118.70824)
-rotation = 0.18038979
+position = Vector2(11, -133)
 scale = Vector2(0.25, 0.25)
 
 [node name="Skin" type="Sprite2D" parent="Body/Chest" unique_id=1953660884]
@@ -1473,8 +1477,7 @@ texture = ExtResource("7_nbkpy")
 offset = Vector2(-73.5, 701.5)
 
 [node name="Head" type="Node2D" parent="Body" unique_id=140396372]
-position = Vector2(20.336973, -183.8399)
-rotation = 0.00016705693
+position = Vector2(8.5, -198.75)
 scale = Vector2(0.24999999, 0.24999999)
 
 [node name="Skin" type="Sprite2D" parent="Body/Head" unique_id=1283961393]
@@ -1483,9 +1486,8 @@ texture = ExtResource("8_o8wh0")
 offset = Vector2(-30.5, 1127)
 
 [node name="FrontThigh" type="Node2D" parent="Body" unique_id=229215964]
-position = Vector2(-10.033239, -102.65896)
-rotation = -1.0752761
-scale = Vector2(0.24999994, 0.24999994)
+position = Vector2(-6.8125, -113.4375)
+scale = Vector2(0.24999996, 0.24999996)
 
 [node name="Skin" type="Sprite2D" parent="Body/FrontThigh" unique_id=877751882]
 position = Vector2(-56.25, -794.5)
@@ -1494,9 +1496,8 @@ offset = Vector2(31.75, 877)
 
 [node name="FrontFoot_Run" type="Node2D" parent="Body" unique_id=1790570968]
 visible = false
-position = Vector2(50.42342, -22.197231)
-rotation = -0.7973204
-scale = Vector2(0.24999991, 0.24999991)
+position = Vector2(-23.312496, -15.187523)
+scale = Vector2(0.24999993, 0.24999993)
 
 [node name="Skin" type="Sprite2D" parent="Body/FrontFoot_Run" unique_id=764160153]
 position = Vector2(81.25, -106.75)
@@ -1504,9 +1505,8 @@ texture = ExtResource("6_yov1d")
 offset = Vector2(-43.5, 132)
 
 [node name="FrontFoot_Idle" type="Node2D" parent="Body" unique_id=745463341]
-position = Vector2(64.20468, -29.568398)
-rotation = -1.0752761
-scale = Vector2(0.24999994, 0.24999994)
+position = Vector2(-35.812492, -13.375019)
+scale = Vector2(0.24999996, 0.24999996)
 
 [node name="Skin" type="Sprite2D" parent="Body/FrontFoot_Idle" unique_id=553136808]
 texture = ExtResource("11_xjma0")
@@ -1514,9 +1514,8 @@ offset = Vector2(-71.5, 33.5)
 
 [node name="FrontShin_Run" type="Node2D" parent="Body" unique_id=605926092]
 visible = false
-position = Vector2(22.70724, -66.49098)
-rotation = -0.5639128
-scale = Vector2(0.24999991, 0.24999991)
+position = Vector2(-23.062496, -67.43751)
+scale = Vector2(0.24999993, 0.24999993)
 
 [node name="Skin" type="Sprite2D" parent="Body/FrontShin_Run" unique_id=836163692]
 position = Vector2(-49, -120)
@@ -1524,9 +1523,8 @@ texture = ExtResource("5_xhgp6")
 offset = Vector2(40.5, 221.5)
 
 [node name="FrontShin_Idle" type="Node2D" parent="Body" unique_id=265476527]
-position = Vector2(22.70724, -66.49098)
-rotation = -1.0752761
-scale = Vector2(0.24999994, 0.24999994)
+position = Vector2(-23.062496, -67.43751)
+scale = Vector2(0.24999996, 0.24999996)
 
 [node name="Skin" type="Sprite2D" parent="Body/FrontShin_Idle" unique_id=760705568]
 position = Vector2(-161.25, -394.5)
@@ -1534,9 +1532,8 @@ texture = ExtResource("10_d0nwc")
 offset = Vector2(138.75, 498.75)
 
 [node name="FrontShoulder" type="Node2D" parent="Body" unique_id=710079020]
-position = Vector2(-10.0935135, -167.47144)
-rotation = 1.0532624
-scale = Vector2(0.24999993, 0.24999993)
+position = Vector2(-18.5, -177.1875)
+scale = Vector2(0.24999994, 0.24999994)
 
 [node name="Skin" type="Sprite2D" parent="Body/FrontShoulder" unique_id=544291478]
 position = Vector2(-135.5, -1053.75)
@@ -1544,9 +1541,8 @@ texture = ExtResource("12_54epy")
 offset = Vector2(99, 1109.25)
 
 [node name="MainWeapon" type="Node2D" parent="Body" unique_id=20975498]
-position = Vector2(-71.6491, -140.22202)
-rotation = 1.0693645
-scale = Vector2(0.24999982, 0.24999982)
+position = Vector2(-24.687502, -110.43752)
+scale = Vector2(0.24999984, 0.24999984)
 
 [node name="Armour" type="Sprite2D" parent="Body/MainWeapon" unique_id=1781855208]
 position = Vector2(173.25, 350.00012)
@@ -1555,9 +1551,8 @@ texture = ExtResource("14_njpkb")
 offset = Vector2(-387, 0)
 
 [node name="FrontHand" type="Node2D" parent="Body" unique_id=778585896]
-position = Vector2(-46.74142, -170.19727)
-rotation = 1.0693645
-scale = Vector2(0.24999982, 0.24999982)
+position = Vector2(-38.999992, -146.6875)
+scale = Vector2(0.24999984, 0.24999984)
 
 [node name="Skin" type="Sprite2D" parent="Body/FrontHand" unique_id=2096766659]
 position = Vector2(-258.5, -869.75)
@@ -1680,7 +1675,7 @@ position = Vector2(-51, 216.25)
 rest = Transform2D(1, 0, 0, 1, -51, 216.25)
 auto_calculate_length_and_angle = false
 length = 96.763
-bone_angle = 113.68398
+bone_angle = 113.683975
 
 [node name="RemoteTransform2D" type="RemoteTransform2D" parent="Bones/Skeleton2D/Hip/FrontThigh/FrontShin_Idle/FrontFoot_Idle" unique_id=1472693902]
 remote_path = NodePath("../../../../../../../Body/FrontFoot_Idle")
@@ -1698,7 +1693,7 @@ position = Vector2(-1, 209)
 rest = Transform2D(1, 0, 0, 1, -1, 209)
 auto_calculate_length_and_angle = false
 length = 92.276
-bone_angle = 37.894993
+bone_angle = 37.89499
 
 [node name="RemoteTransform2D" type="RemoteTransform2D" parent="Bones/Skeleton2D/Hip/FrontThigh/FrontShin_Run/FrontFoot_Run" unique_id=782975610]
 remote_path = NodePath("../../../../../../../Body/FrontFoot_Run")

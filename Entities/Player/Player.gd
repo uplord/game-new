@@ -25,8 +25,8 @@ const HOLD_TARGET_CHANGE_DISTANCE := 6.0
 const CLICK_STOP_DISTANCE := 8.0
 const MIN_CLICK_DISTANCE := 10.0
 const MOVE_THRESHOLD := 0.01
-const POSITION_SEND_INTERVAL := 0.05
-const POSITION_SEND_DISTANCE := 4.0
+const POSITION_SEND_INTERVAL := 0.016
+const POSITION_SEND_DISTANCE := 1.0
 
 var facing := 1
 var last_facing := 1
@@ -38,6 +38,7 @@ var mouse_mode := MouseMode.NONE
 var click_target := Vector2.ZERO
 var mouse_down_time := 0.0
 var hold_started := false
+var mouse_press_active := false
 
 var follow_moving := false
 var last_hold_send_time := 0.0
@@ -96,8 +97,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.pressed:
 		mouse_down_time = _now()
+		mouse_press_active = true
 		hold_started = false
 	else:
+		if not mouse_press_active:
+			return
+
+		mouse_press_active = false
 		var held_time := _now() - mouse_down_time
 
 		if held_time < HOLD_THRESHOLD:
@@ -110,7 +116,7 @@ func _process(_delta: float) -> void:
 	if movement_locked:
 		return
 
-	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	if not mouse_press_active or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		return
 
 	if _is_mouse_over_ui():
@@ -154,6 +160,7 @@ func _get_movement_input() -> Vector2:
 	)
 
 	if keyboard_input != Vector2.ZERO:
+		_clear_enemy_target()
 		mouse_mode = MouseMode.NONE
 		follow_moving = false
 		return keyboard_input
@@ -200,11 +207,20 @@ func _get_hold_follow_input() -> Vector2:
 
 
 func _on_click() -> void:
+	var clicked_enemy := _get_enemy_under_mouse()
+	if clicked_enemy != null:
+		if clicked_enemy.has_method("target"):
+			clicked_enemy.target()
+		else:
+			_clear_enemy_target()
+		return
+
 	var new_target := _get_map_mouse_position()
 
 	if position.distance_squared_to(new_target) < MIN_CLICK_DISTANCE * MIN_CLICK_DISTANCE:
 		return
 
+	_clear_enemy_target()
 	click_target = new_target
 	mouse_mode = MouseMode.CLICK_MOVE
 	follow_moving = false
@@ -213,6 +229,7 @@ func _on_click() -> void:
 
 
 func _on_hold_start() -> void:
+	_clear_enemy_target()
 	click_target = Vector2.ZERO
 	mouse_mode = MouseMode.HOLD_FOLLOW
 	follow_moving = false
@@ -228,6 +245,24 @@ func _on_hold_release() -> void:
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
 
+	_send_stop()
+
+
+
+
+func _clear_enemy_target() -> void:
+	var ui := game.get_node_or_null("UI") if game != null else null
+	if ui != null and ui.has_method("hide_enemy_card"):
+		ui.hide_enemy_card()
+
+func cancel_mouse_movement() -> void:
+	mouse_press_active = false
+	hold_started = false
+	mouse_mode = MouseMode.NONE
+	follow_moving = false
+	click_target = Vector2.ZERO
+	last_sent_hold_target = Vector2.INF
+	last_hold_send_time = 0.0
 	_send_stop()
 
 
@@ -308,6 +343,34 @@ func _get_move_speed() -> float:
 
 func _is_mouse_over_ui() -> bool:
 	return _viewport.gui_get_hovered_control() != null
+
+
+func _get_enemy_under_mouse() -> Node:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = get_global_mouse_position()
+	query.collide_with_areas = true
+	query.collide_with_bodies = false
+	query.collision_mask = 0xFFFFFFFF
+
+	var hits := space_state.intersect_point(query, 32)
+	for hit in hits:
+		var collider := hit.get("collider") as Node
+		var enemy := _find_targetable_enemy(collider)
+		if enemy != null:
+			return enemy
+
+	return null
+
+
+func _find_targetable_enemy(node: Node) -> Node:
+	var current := node
+	while current != null:
+		if current.is_in_group("targetable_enemies"):
+			return current
+		current = current.get_parent()
+
+	return null
 
 
 func _now() -> float:

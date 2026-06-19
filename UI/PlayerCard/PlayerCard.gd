@@ -28,3 +28,17 @@ func _style_bar(bar: ProgressBar, fill_color: Color, bg_color: Color) -> void:
 
 	bar.add_theme_stylebox_override("background", bg)
 	bar.add_theme_stylebox_override("fill", fill)
+
+
+func set_card_data(display_name: String, hp_value: float = 100.0, hp_max: float = 100.0, mp_value: float = 0.0, mp_max: float = 100.0) -> void:
+	if label_name != null:
+		label_name.text = display_name
+
+	if hp_bar != null:
+		hp_bar.max_value = max(hp_max, 1.0)
+		hp_bar.value = clamp(hp_value, 0.0, hp_bar.max_value)
+
+	if mp_bar != null:
+		mp_bar.max_value = max(mp_max, 1.0)
+		mp_bar.value = clamp(mp_value, 0.0, mp_bar.max_value)
+		mp_bar.visible = mp_max > 0.0

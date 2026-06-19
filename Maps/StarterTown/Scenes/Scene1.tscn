@@ -1,37 +1,26 @@
 [gd_scene format=3 uid="uid://bb8eldlc15jhd"]
 
 [ext_resource type="Texture2D" uid="uid://ckxwfquxnjgay" path="res://Maps/StarterTown/Art/map-starter.png" id="1_rr3rg"]
-[ext_resource type="PackedScene" uid="uid://cdthxq6eebin7" path="res://Entities/Models/Model.tscn" id="2_qshf8"]
+[ext_resource type="PackedScene" uid="uid://ckrk0wlaltbnp" path="res://Entities/Enemy/Enemy.tscn" id="2_wybr7"]
 [ext_resource type="Script" uid="uid://tvb3xi8lsb3p" path="res://Entities/Models/Data/Human/HumanModelData.gd" id="3_rgito"]
 [ext_resource type="Script" uid="uid://cp4pst7p8dnh3" path="res://Entities/Models/Data/BabyDragon/BabyDragonModelData.gd" id="4_rgito"]
-[ext_resource type="Script" uid="uid://6qhmyfdfow1m" path="res://Entities/Models/Data/Slime/SlimeModelData.gd" id="5_8obig"]
+[ext_resource type="Script" uid="uid://6qhmyfdfow1m" path="res://Entities/Models/Data/BabySlime/BabySlimeModelData.gd" id="5_8obig"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rr3rg"]
 size = Vector2(1307, 735)
 
-[sub_resource type="Resource" id="Resource_8obig"]
-script = ExtResource("3_rgito")
-metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
-
-[sub_resource type="Resource" id="Resource_fmqbo"]
+[sub_resource type="Resource" id="Resource_rgito"]
 script = ExtResource("5_8obig")
-body_type = "King"
-facing_direction = 1
 metadata/_custom_type_script = "uid://6qhmyfdfow1m"
 
-[sub_resource type="Resource" id="Resource_f1vb1"]
+[sub_resource type="Resource" id="Resource_8obig"]
 script = ExtResource("4_rgito")
 facing_direction = 1
 metadata/_custom_type_script = "uid://cp4pst7p8dnh3"
 
-[sub_resource type="Resource" id="Resource_7kbsl"]
-script = ExtResource("5_8obig")
-metadata/_custom_type_script = "uid://6qhmyfdfow1m"
-
-[sub_resource type="Resource" id="Resource_k74ew"]
-script = ExtResource("5_8obig")
-body_type = "Adult"
-metadata/_custom_type_script = "uid://6qhmyfdfow1m"
+[sub_resource type="Resource" id="Resource_f1vb1"]
+script = ExtResource("3_rgito")
+metadata/_custom_type_script = "uid://tvb3xi8lsb3p"
 
 [node name="Scene1" type="Node2D" unique_id=283029346]
 
@@ -61,27 +50,25 @@ position = Vector2(-6, 198)
 
 [node name="Objects" type="Node2D" parent="." unique_id=532033821]
 
-[node name="Model" parent="Objects" unique_id=1474508977 instance=ExtResource("2_qshf8")]
-position = Vector2(-255, -113)
+[node name="Enemies" type="Node2D" parent="." unique_id=1861785255]
+
+[node name="Enemy" parent="Enemies" unique_id=167616825 instance=ExtResource("2_wybr7")]
+modulate = Color(0.9690456, 0.44712365, 0.5361045, 1)
+position = Vector2(-309, -90)
+model_data = SubResource("Resource_rgito")
+enemy_name = "Slime baby"
+
+[node name="Enemy2" parent="Enemies" unique_id=10092746 instance=ExtResource("2_wybr7")]
+modulate = Color(0.96862745, 0.44705883, 0.5372549, 1)
+position = Vector2(334, -57)
 model_data = SubResource("Resource_8obig")
-starting_pose = 1
+enemy_name = "Baby dragon"
+hp = 60.0
 
-[node name="Model2" parent="Objects" unique_id=864933425 instance=ExtResource("2_qshf8")]
-position = Vector2(442, -106)
-model_data = SubResource("Resource_fmqbo")
-
-[node name="Model3" parent="Objects" unique_id=1377781792 instance=ExtResource("2_qshf8")]
-position = Vector2(-557, 27)
-model_data = SubResource("Resource_8obig")
-
-[node name="Model4" parent="Objects" unique_id=1217262976 instance=ExtResource("2_qshf8")]
-position = Vector2(494, 190)
+[node name="Enemy3" parent="Enemies" unique_id=1732991765 instance=ExtResource("2_wybr7")]
+modulate = Color(0.96862745, 0.44705883, 0.5372549, 1)
+position = Vector2(-482, 190)
 model_data = SubResource("Resource_f1vb1")
-
-[node name="Model5" parent="Objects" unique_id=129487819 instance=ExtResource("2_qshf8")]
-position = Vector2(-464, 278)
-model_data = SubResource("Resource_7kbsl")
-
-[node name="Model6" parent="Objects" unique_id=555545261 instance=ExtResource("2_qshf8")]
-position = Vector2(-45, -135)
-model_data = SubResource("Resource_k74ew")
+animation_tree_enabled = true
+starting_pose = 1
+enemy_name = "Human enemy"

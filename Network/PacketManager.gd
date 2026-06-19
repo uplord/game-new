@@ -4,7 +4,7 @@ var server_manager: Node
 var logger: Node
 var instance_manager: InstanceManager
 
-const MOVEMENT_BROADCAST_INTERVAL := 0.05
+const MOVEMENT_BROADCAST_INTERVAL := 0.016
 var last_movement_broadcast_time: Dictionary = {}
 
 

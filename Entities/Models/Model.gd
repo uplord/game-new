@@ -6,6 +6,8 @@ extends Node2D
 @export var keep_animation_tree_for_player := false
 @export var starting_pose: PlayerUtil.PlayerPose = PlayerUtil.PlayerPose.IDLE
 
+@export_category("Targeting")
+
 var selected_model: Node
 const Z_SORT_OFFSET := 1000
 var _last_z_index: int = -2147483648
@@ -13,10 +15,11 @@ var _last_z_index: int = -2147483648
 func _ready() -> void:
 	y_sort_enabled = false
 	load_model()
-	apply_default_scale()
+
 
 func _process(_delta: float) -> void:
 	_apply_z_sort()
+
 
 func load_model() -> void:
 	if model_data == null:
@@ -37,25 +40,29 @@ func load_model() -> void:
 
 	if selected_model.has_method("apply_model_data"):
 		selected_model.apply_model_data(model_data)
+
+	_apply_facing_direction()
 	
 	_configure_animation_tree()
 	_apply_starting_pose()
+	_sync_target_area()
 	_apply_z_sort()
 
-func apply_default_scale() -> void:
-	if model_data == null:
-		return
-
-	var x_scale := model_data.default_scale
-
-	if model_data.facing_direction == ModelData.FacingDirection.LEFT:
-		x_scale = -x_scale
-
-	scale = Vector2(x_scale, model_data.default_scale)
 
 func get_model_root() -> Node:
 	return selected_model
 	
+
+
+func _apply_facing_direction() -> void:
+	if selected_model == null or model_data == null:
+		return
+
+	var facing := 1
+	if model_data.facing_direction == ModelData.FacingDirection.LEFT:
+		facing = -1
+
+	selected_model.scale.x = abs(selected_model.scale.x) * facing
 
 func _configure_animation_tree() -> void:
 	if selected_model == null:
@@ -104,3 +111,20 @@ func _apply_z_sort() -> void:
 
 	_last_z_index = new_z
 	z_index = new_z
+
+
+func get_target_area() -> Area2D:
+	if selected_model == null:
+		return null
+
+	return selected_model.get_node_or_null("TargetArea") as Area2D
+
+
+func _sync_target_area() -> void:
+	var area := get_target_area()
+	if area == null:
+		return
+
+	area.input_pickable = true
+	area.collision_layer = 1
+	area.collision_mask = 0

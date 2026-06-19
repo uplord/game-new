@@ -7,6 +7,7 @@ extends CanvasLayer
 
 @onready var top_box: BoxContainer = $UIFrame/TopUI/MarginContainer/BoxContainer
 @onready var cards_container: HBoxContainer = $UIFrame/TopUI/MarginContainer/BoxContainer/CardsContainer
+@onready var enemy_card: PanelContainer = $UIFrame/TopUI/MarginContainer/BoxContainer/CardsContainer/EnemyCard
 @onready var menu_buttons: HBoxContainer = $UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons
 
 @onready var bottom_box: BoxContainer = $UIFrame/BottomUI/MarginContainer/BoxContainer
@@ -19,6 +20,7 @@ const MAX_LANDSCAPE_ASPECT := 16.0 / 9.0
 const MAP_LABEL_UPDATE_INTERVAL := 0.25
 var _map_label_timer := 0.0
 var _last_map_label_text := ""
+var current_enemy_target: Node = null
 
 func _ready() -> void:
 	get_viewport().size_changed.connect(_on_resized)
@@ -115,6 +117,10 @@ func _update_map_label() -> void:
 	label_map.text = text
 
 
+func _on_server_lost() -> void:
+	modal.force_close()
+
+
 # ---------------------
 # BUTTONS
 # ---------------------
@@ -127,3 +133,31 @@ func _on_modal_pressed() -> void:
 
 func _on_close_button_pressed() -> void:
 	modal.close()
+
+
+func show_enemy_card(enemy: Node) -> void:
+	current_enemy_target = enemy
+
+	if enemy_card == null:
+		return
+
+	enemy_card.visible = true
+
+	var display_name := str(enemy.get("enemy_name"))
+	if display_name == "" or display_name == "<null>":
+		display_name = enemy.name
+
+	var hp_value := float(enemy.get("hp")) if enemy.get("hp") != null else 100.0
+	var hp_max := float(enemy.get("max_hp")) if enemy.get("max_hp") != null else 100.0
+	var mp_value := float(enemy.get("mp")) if enemy.get("mp") != null else 0.0
+	var mp_max := float(enemy.get("max_mp")) if enemy.get("max_mp") != null else 0.0
+
+	if enemy_card.has_method("set_card_data"):
+		enemy_card.set_card_data(display_name, hp_value, hp_max, mp_value, mp_max)
+
+
+func hide_enemy_card() -> void:
+	current_enemy_target = null
+
+	if enemy_card != null:
+		enemy_card.visible = false

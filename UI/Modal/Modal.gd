@@ -53,6 +53,14 @@ func toggle() -> void:
 		open()
 
 
+func force_close() -> void:
+	if _fade_tween:
+		_fade_tween.kill()
+
+	modulate.a = 0.0
+	visible = false
+
+
 func _fade_to(alpha: float) -> void:
 	if _fade_tween:
 		_fade_tween.kill()

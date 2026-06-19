@@ -3,7 +3,7 @@ extends Node2D
 @onready var shadow: ColorRect = $Shadow
 @onready var base: Sprite2D = $Body/Chest/Base
 
-var body_type: String = "Baby"
+var body_type: String = "Green"
 
 var parts := {
 	"Chest": "chest",
@@ -20,11 +20,11 @@ func _ready() -> void:
 
 
 func apply_model_data(data: ModelData) -> void:
-	if not data is SlimeModelData:
+	if not data is BabySlimeModelData:
 		push_error("Slime received wrong model data")
 		return
 
-	var slime_data := data as SlimeModelData
+	var slime_data := data as BabySlimeModelData
 	body_type = slime_data.body_type
 
 	if is_inside_tree():
@@ -36,7 +36,7 @@ func load_body_textures() -> void:
 		var sprite: Sprite2D = get_node("Body/%s/Base" % node_name)
 
 		var texture_path := (
-			"res://Entities/Models/Data/Slime/Art/%s/%s/base.png"
+			"res://Entities/Models/Data/BabySlime/Art/%s/%s/base.png"
 			% [body_type, parts[node_name]]
 		)
 

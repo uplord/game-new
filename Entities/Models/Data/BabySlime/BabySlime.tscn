@@ -1,11 +1,14 @@
 [gd_scene format=3 uid="uid://b1jw4s3x6x1dk"]
 
-[ext_resource type="Script" uid="uid://bjcjfiu6240rk" path="res://Entities/Models/Data/Slime/Slime.gd" id="1_gkv8i"]
-[ext_resource type="Shader" uid="uid://c461sxt8qv8sf" path="res://Utilities/Shaders/shadow.gdshader" id="2_0mvak"]
-[ext_resource type="Texture2D" uid="uid://cb5ajbpo73ghs" path="res://Entities/Models/Data/Slime/Art/Baby/chest/base.png" id="2_7luby"]
+[ext_resource type="Script" uid="uid://bjcjfiu6240rk" path="res://Entities/Models/Data/BabySlime/BabySlime.gd" id="1_823li"]
+[ext_resource type="Texture2D" uid="uid://cb5ajbpo73ghs" path="res://Entities/Models/Data/BabySlime/Art/Green/chest/base.png" id="2_ingtv"]
+[ext_resource type="Shader" uid="uid://c461sxt8qv8sf" path="res://Utilities/Shaders/shadow.gdshader" id="3_nb6un"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_target"]
+size = Vector2(140, 90)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dp7po"]
-shader = ExtResource("2_0mvak")
+shader = ExtResource("3_nb6un")
 shader_parameter/opacity = 0.1
 shader_parameter/softness = 0.25
 
@@ -96,12 +99,20 @@ states/Running/node = SubResource("AnimationNodeAnimation_7luby")
 states/Running/position = Vector2(700.5, 171)
 transitions = ["Dead", "Idle", SubResource("AnimationNodeStateMachineTransition_7luby"), "Idle", "Dead", SubResource("AnimationNodeStateMachineTransition_0mvak")]
 
-[node name="Slime" type="Node2D" unique_id=962367011]
-script = ExtResource("1_gkv8i")
+[node name="BabySlime" type="Node2D" unique_id=962367011]
+script = ExtResource("1_823li")
+
+[node name="TargetArea" type="Area2D" parent="." unique_id=1778575329]
+position = Vector2(0, -30)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TargetArea" unique_id=2027228244]
+shape = SubResource("RectangleShape2D_target")
 
 [node name="Shadow" type="ColorRect" parent="." unique_id=217738052]
 material = SubResource("ShaderMaterial_dp7po")
 offset_right = 60.0
+mouse_filter = 2
 
 [node name="Body" type="Node2D" parent="." unique_id=2077736839]
 
@@ -110,7 +121,7 @@ scale = Vector2(0.25, 0.25)
 
 [node name="Base" type="Sprite2D" parent="Body/Chest" unique_id=874591384]
 position = Vector2(0, -112)
-texture = ExtResource("2_7luby")
+texture = ExtResource("2_ingtv")
 offset = Vector2(0, -690)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1780056831]

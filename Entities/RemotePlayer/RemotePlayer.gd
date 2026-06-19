@@ -2,7 +2,7 @@ extends Node2D
 
 @onready var body = $Base/Model
 
-const INTERPOLATION_DELAY := 0.12
+const INTERPOLATION_DELAY := 0.08
 const MAX_EXTRAPOLATION_TIME := 0.08
 const SNAP_DISTANCE := 600.0
 const STOP_SNAP_DISTANCE := 1.0
