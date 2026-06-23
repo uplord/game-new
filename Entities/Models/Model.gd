@@ -1,3 +1,4 @@
+@tool
 extends Node2D
 
 @export var model_data: ModelData
@@ -11,6 +12,7 @@ extends Node2D
 var selected_model: Node
 const Z_SORT_OFFSET := 1000
 var _last_z_index: int = -2147483648
+var _last_global_position := Vector2.INF
 
 func _ready() -> void:
 	y_sort_enabled = false
@@ -18,10 +20,20 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	_apply_z_sort()
+	var parent_node := get_parent()
+	if parent_node == null:
+		return
+
+	if parent_node is Node2D:
+		if _last_global_position != global_position:
+			_last_global_position = global_position
+			_apply_z_sort()
 
 
 func load_model() -> void:
+	for child in get_children():
+		child.queue_free()
+
 	if model_data == null:
 		push_error("No model data assigned on: " + name)
 		return

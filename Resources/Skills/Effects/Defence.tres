@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="StatusEffectResource" format=3 uid="uid://cf1mjaq2i8k67"]
+
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://Resources/Skills/StatusEffectResource.gd" id="1_q4g7p"]
+
+[resource]
+script = ExtResource("1_q4g7p")
+effect_id = "defence"
+effect_name = "Defence"
+stat = "defence"
+percent_amount = 0.5
+duration = 20.0

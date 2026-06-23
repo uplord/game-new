@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="StatusEffectResource" format=3 uid="uid://c6knbk04jid4o"]
+
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://Resources/Skills/StatusEffectResource.gd" id="1_hla8f"]
+
+[resource]
+script = ExtResource("1_hla8f")
+effect_id = "healing"
+effect_name = "Healing"
+effect_type = "hot"
+stat = "hp_regen"
+flat_amount = 10

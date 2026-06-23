@@ -2,19 +2,19 @@
 
 [ext_resource type="Script" uid="uid://igu8idauc8ae" path="res://Entities/Models/Data/Human/Human.gd" id="1_d0nwc"]
 [ext_resource type="Shader" uid="uid://c461sxt8qv8sf" path="res://Utilities/Shaders/shadow.gdshader" id="2_njpkb"]
-[ext_resource type="Texture2D" uid="uid://dxnwla12lnsc0" path="res://Entities/Models/Data/Human/Art/Male/back_hand/armour.png" id="2_xjma0"]
+[ext_resource type="Texture2D" uid="uid://da7cok8gqdxff" path="res://Entities/Models/Data/Human/Art/Male/back_hand/armour.png" id="2_xjma0"]
 [ext_resource type="Texture2D" uid="uid://vtuhl3ha78f5" path="res://Entities/Items/Shields/Base/item.png" id="2_yt0k3"]
-[ext_resource type="Texture2D" uid="uid://ckbt57hvls6qs" path="res://Entities/Models/Data/Human/Art/Male/back_shoulder/armour.png" id="3_yt0k3"]
-[ext_resource type="Texture2D" uid="uid://p4dnu5rg4cuu" path="res://Entities/Models/Data/Human/Art/Male/back_thigh/armour.png" id="4_njpkb"]
-[ext_resource type="Texture2D" uid="uid://dvbd2mnyka0rf" path="res://Entities/Models/Data/Human/Art/Male/back_shin/armour.png" id="5_xhgp6"]
-[ext_resource type="Texture2D" uid="uid://xd48jvhl5b10" path="res://Entities/Models/Data/Human/Art/Male/back_foot/armour.png" id="6_yov1d"]
-[ext_resource type="Texture2D" uid="uid://bmoaih2eyf007" path="res://Entities/Models/Data/Human/Art/Male/chest/armour.png" id="7_nbkpy"]
-[ext_resource type="Texture2D" uid="uid://dr4xlowsxktoq" path="res://Entities/Models/Data/Human/Art/Male/head/armour.png" id="8_o8wh0"]
-[ext_resource type="Texture2D" uid="uid://b14h70r7ku1u3" path="res://Entities/Models/Data/Human/Art/Male/front_thigh/armour.png" id="9_a5nqe"]
-[ext_resource type="Texture2D" uid="uid://bggbs3pt6prf8" path="res://Entities/Models/Data/Human/Art/Male/front_shin/armour.png" id="10_d0nwc"]
-[ext_resource type="Texture2D" uid="uid://bihvixpdua5it" path="res://Entities/Models/Data/Human/Art/Male/front_foot/armour.png" id="11_xjma0"]
-[ext_resource type="Texture2D" uid="uid://bdyp1li0r2oe1" path="res://Entities/Models/Data/Human/Art/Male/front_shoulder/armour.png" id="12_54epy"]
-[ext_resource type="Texture2D" uid="uid://2s7lmujtdso7" path="res://Entities/Models/Data/Human/Art/Male/front_hand/armour.png" id="13_cf08s"]
+[ext_resource type="Texture2D" uid="uid://d22y5ucwjmjf5" path="res://Entities/Models/Data/Human/Art/Male/back_shoulder/armour.png" id="3_yt0k3"]
+[ext_resource type="Texture2D" uid="uid://d0je5463ifif3" path="res://Entities/Models/Data/Human/Art/Male/back_thigh/armour.png" id="4_njpkb"]
+[ext_resource type="Texture2D" uid="uid://dewwwdccno3ih" path="res://Entities/Models/Data/Human/Art/Male/back_shin/armour.png" id="5_xhgp6"]
+[ext_resource type="Texture2D" uid="uid://don1e4jf71o7b" path="res://Entities/Models/Data/Human/Art/Male/back_foot/armour.png" id="6_yov1d"]
+[ext_resource type="Texture2D" uid="uid://bwlcnboxht6tq" path="res://Entities/Models/Data/Human/Art/Male/chest/armour.png" id="7_nbkpy"]
+[ext_resource type="Texture2D" uid="uid://bp0axx4xjims" path="res://Entities/Models/Data/Human/Art/Male/head/armour.png" id="8_o8wh0"]
+[ext_resource type="Texture2D" uid="uid://dicnolyotj627" path="res://Entities/Models/Data/Human/Art/Male/front_thigh/armour.png" id="9_a5nqe"]
+[ext_resource type="Texture2D" uid="uid://c3c45vh3g44ue" path="res://Entities/Models/Data/Human/Art/Male/front_shin/armour.png" id="10_d0nwc"]
+[ext_resource type="Texture2D" uid="uid://dp4cjg0xx3ubl" path="res://Entities/Models/Data/Human/Art/Male/front_foot/armour.png" id="11_xjma0"]
+[ext_resource type="Texture2D" uid="uid://bjgbjj3v8il8y" path="res://Entities/Models/Data/Human/Art/Male/front_shoulder/armour.png" id="12_54epy"]
+[ext_resource type="Texture2D" uid="uid://dgutfn0otwbgs" path="res://Entities/Models/Data/Human/Art/Male/front_hand/armour.png" id="13_cf08s"]
 [ext_resource type="Texture2D" uid="uid://b13augs8ykga1" path="res://Entities/Items/Swords/Base/item.png" id="14_njpkb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_target"]
@@ -22,8 +22,8 @@ size = Vector2(180, 260)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_xhgp6"]
 shader = ExtResource("2_njpkb")
-shader_parameter/opacity = 0.10000000475
-shader_parameter/softness = 0.25
+shader_parameter/selected = false
+shader_parameter/edge_softness = 0.04
 
 [sub_resource type="Animation" id="Animation_d0nwc"]
 length = 0.001
@@ -1403,10 +1403,10 @@ shape = SubResource("RectangleShape2D_target")
 
 [node name="Shadow" type="ColorRect" parent="." unique_id=961810210]
 material = SubResource("ShaderMaterial_xhgp6")
-offset_left = -80.0
-offset_top = -21.0
-offset_right = 80.0
-offset_bottom = 21.0
+offset_left = -120.0
+offset_top = -35.0
+offset_right = 120.0
+offset_bottom = 45.0
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
@@ -1675,7 +1675,7 @@ position = Vector2(-51, 216.25)
 rest = Transform2D(1, 0, 0, 1, -51, 216.25)
 auto_calculate_length_and_angle = false
 length = 96.763
-bone_angle = 113.683975
+bone_angle = 113.68397
 
 [node name="RemoteTransform2D" type="RemoteTransform2D" parent="Bones/Skeleton2D/Hip/FrontThigh/FrontShin_Idle/FrontFoot_Idle" unique_id=1472693902]
 remote_path = NodePath("../../../../../../../Body/FrontFoot_Idle")
@@ -1693,7 +1693,7 @@ position = Vector2(-1, 209)
 rest = Transform2D(1, 0, 0, 1, -1, 209)
 auto_calculate_length_and_angle = false
 length = 92.276
-bone_angle = 37.89499
+bone_angle = 37.894985
 
 [node name="RemoteTransform2D" type="RemoteTransform2D" parent="Bones/Skeleton2D/Hip/FrontThigh/FrontShin_Run/FrontFoot_Run" unique_id=782975610]
 remote_path = NodePath("../../../../../../../Body/FrontFoot_Run")

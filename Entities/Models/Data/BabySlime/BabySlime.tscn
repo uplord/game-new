@@ -11,6 +11,10 @@ size = Vector2(140, 90)
 shader = ExtResource("3_nb6un")
 shader_parameter/opacity = 0.1
 shader_parameter/softness = 0.25
+shader_parameter/selected = false
+shader_parameter/glow_color = Color(1, 0.85, 0.1, 1)
+shader_parameter/glow_opacity = 0.75
+shader_parameter/glow_width = 0.18
 
 [sub_resource type="Animation" id="Animation_7luby"]
 length = 0.001
@@ -111,7 +115,10 @@ shape = SubResource("RectangleShape2D_target")
 
 [node name="Shadow" type="ColorRect" parent="." unique_id=217738052]
 material = SubResource("ShaderMaterial_dp7po")
-offset_right = 60.0
+offset_left = -110.0
+offset_top = -30.0
+offset_right = 110.0
+offset_bottom = 30.0
 mouse_filter = 2
 
 [node name="Body" type="Node2D" parent="." unique_id=2077736839]

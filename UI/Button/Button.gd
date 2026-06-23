@@ -28,6 +28,7 @@ enum TextAlignment {
 @export var bg_color: Color = Color("#222222")
 @export var bg_color_hover: Color = Color("#222222")
 @export var bg_color_pressed: Color = Color("#222222")
+@export var bg_color_disabled: Color = Color("#aaaaaa")
 @export var font_color: Color = Color("#ffffff")
 
 @export var offset_border_size: float = 0.0
@@ -105,7 +106,7 @@ func _get_state_background_color(state: String) -> Color:
 		"pressed":
 			return bg_color_pressed
 		"disabled":
-			return bg_color
+			return bg_color_disabled
 		"focus":
 			return bg_color
 		_:

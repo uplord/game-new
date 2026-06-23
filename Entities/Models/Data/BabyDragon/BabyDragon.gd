@@ -1,3 +1,4 @@
+@tool
 extends Node2D
 
 @onready var shadow: ColorRect = $Shadow
@@ -8,11 +9,6 @@ var body_type: String = "FireDragon"
 var parts := {
 	"Chest": "chest",
 }
-
-var shadow_width := {
-	"firedragon": 141.0,
-}
-
 
 func _ready() -> void:
 	load_body_textures()
@@ -42,23 +38,5 @@ func load_body_textures() -> void:
 
 		if tex:
 			sprite.texture = tex
-			
-			if node_name == "Chest":
-				update_shadow_size()
 		else:
 			push_warning("Texture not found: " + texture_path)
-
-
-func update_shadow_size() -> void:
-	var key := body_type.to_lower().strip_edges()
-
-	var width: float = shadow_width.get(key, 141.0)
-	var height: float = width * 0.5
-
-	shadow.offset_left = -width * 0.5
-	shadow.offset_right = width * 0.5
-
-	shadow.offset_top = 0
-	shadow.offset_bottom = height * 0.5
-
-	shadow.position.y = -height * 0.25

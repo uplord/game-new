@@ -51,7 +51,6 @@ layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_mydr1")
 theme_override_styles/fill = SubResource("StyleBoxFlat_0td16")
 value = 75.0
-show_percentage = false
 
 [node name="MPBar" type="ProgressBar" parent="MarginContainer/VBoxContainer" unique_id=1373540931]
 custom_minimum_size = Vector2(0, 16)
@@ -59,4 +58,7 @@ layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_rvm1x")
 theme_override_styles/fill = SubResource("StyleBoxFlat_1bscj")
 value = 50.0
-show_percentage = false
+
+[node name="Effects" type="Label" parent="MarginContainer/VBoxContainer" unique_id=115924027]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12

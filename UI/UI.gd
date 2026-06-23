@@ -14,13 +14,38 @@ extends CanvasLayer
 
 @onready var label_map: Label = $UIFrame/BottomUI/MarginContainer/BoxContainer/LabelMap
 @onready var battle_buttons: HBoxContainer = $UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons
+@onready var player_card: PanelContainer = $UIFrame/TopUI/MarginContainer/BoxContainer/CardsContainer/PlayerCard
+
+@onready var player_effects_label: Label = player_card.get_node_or_null("MarginContainer/VBoxContainer/Effects")
+@onready var enemy_effects_label: Label = enemy_card.get_node_or_null("MarginContainer/VBoxContainer/Effects")
 
 const MAX_LANDSCAPE_ASPECT := 16.0 / 9.0
 
 const MAP_LABEL_UPDATE_INTERVAL := 0.25
+const AUTO_SKILL_PENDING_TIMEOUT := 1.0
+
 var _map_label_timer := 0.0
 var _last_map_label_text := ""
 var current_enemy_target: Node = null
+var battle_state: Dictionary = {}
+var battle_state_received_at := 0.0
+var effect_label_update_timer := 0.0
+var skill_button_order := ["slash", "fire", "defend", "heal", "ultra_attack"]
+var death_screen: Control = null
+var death_screen_label: Label = null
+var death_reset_button: Button = null
+var was_dead := false
+var auto_skill_1_timer := 0.0
+var auto_skill_pending: Dictionary = {}
+var support_skill_pose_preserve_until := 0.0
+var original_skill_button_text: Dictionary = {}
+
+var skill_info_panel: PanelContainer = null
+var skill_info_title: Label = null
+var skill_info_body: RichTextLabel = null
+var selected_skill_info_id := ""
+
+var battle_button_timer := 0.0
 
 func _ready() -> void:
 	get_viewport().size_changed.connect(_on_resized)
@@ -29,16 +54,33 @@ func _ready() -> void:
 	if SceneManager.has_signal("map_status_changed"):
 		SceneManager.map_status_changed.connect(_update_map_label)
 	
+	_setup_battle_buttons()
+	_setup_death_screen()
+	_hide_effect_labels()
 	await get_tree().process_frame
 	await get_tree().process_frame
+	_hide_effect_labels()
 	get_window().size_changed.emit()
+	_update_battle_buttons()
 
 func _process(delta):
+	auto_skill_1_timer += delta
 	_map_label_timer += delta
 #
 	if _map_label_timer >= MAP_LABEL_UPDATE_INTERVAL:
 		_map_label_timer = 0.0
 		_update_map_label()
+
+	effect_label_update_timer += delta
+	if effect_label_update_timer >= 1.0:
+		effect_label_update_timer = 0.0
+		_update_effect_labels()
+
+	battle_button_timer += delta
+
+	if battle_button_timer >= 0.1:
+		battle_button_timer = 0.0
+		_update_battle_buttons()
 
 func _on_resized() -> void:
 	call_deferred("update_ui")
@@ -136,28 +178,676 @@ func _on_close_button_pressed() -> void:
 
 
 func show_enemy_card(enemy: Node) -> void:
-	current_enemy_target = enemy
+	if current_enemy_target != null and is_instance_valid(current_enemy_target):
+		if current_enemy_target.has_method("set_selected"):
+			current_enemy_target.set_selected(false)
 
-	if enemy_card == null:
+	current_enemy_target = enemy
+	print("TARGET: ", enemy)
+	
+	var player := SceneManager.player
+
+	if player != null and enemy != null:
+		var camera_manager := get_tree().root.get_node("Game/CameraManager")
+
+		if camera_manager != null:
+			var dir = sign(enemy.global_position.x - player.global_position.x)
+
+			# Enemy on right -> player moves to left edge
+			# Enemy on left -> player moves to right edge
+			camera_manager.focus_enemy(dir)
+
+	if current_enemy_target != null and current_enemy_target.has_method("set_selected"):
+		current_enemy_target.set_selected(true)
+
+	_select_enemy_on_server(enemy)
+	show_enemy_card_local(enemy)
+
+
+func _move_player_close_to_enemy(enemy: Node) -> void:
+	var player := SceneManager.player
+	if player != null and is_instance_valid(player) and player.has_method("move_close_to_enemy"):
+		player.move_close_to_enemy(enemy)
+
+
+func hide_enemy_card(force: bool = false) -> void:
+	if not force and is_player_in_battle():
 		return
 
+	if current_enemy_target != null and is_instance_valid(current_enemy_target):
+		if current_enemy_target.has_method("set_selected"):
+			current_enemy_target.set_selected(false)
+
+	current_enemy_target = null
+	
+	#print("hide_enemy_card")
+
+	if enemy_card != null:
+		enemy_card.visible = false
+
+	_update_effect_labels()
+	
+	var camera_manager := get_tree().root.get_node("Game/CameraManager")
+
+	if camera_manager != null:
+		camera_manager.clear_enemy_focus()
+
+
+func is_player_in_battle() -> bool:
+	var player = battle_state.get("player", {})
+	return (bool(player.get("in_battle", false))) and float(player.get("hp", 100.0)) > 0.0
+
+func on_enemy_visibility_changed(enemy: Node, enemy_visible: bool) -> void:
+	if current_enemy_target == enemy and not enemy_visible:
+		hide_enemy_card(true)
+	elif current_enemy_target == enemy and enemy_visible:
+		show_enemy_card_local(enemy)
+	_update_battle_buttons()
+
+
+# ---------------------
+# BATTLE SYSTEM
+# ---------------------
+func _setup_death_screen() -> void:
+	if death_screen != null:
+		return
+
+	death_screen = Control.new()
+	death_screen.name = "DeathScreen"
+	death_screen.visible = false
+	death_screen.z_index = 4000
+	death_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	death_screen.mouse_filter = Control.MOUSE_FILTER_STOP
+	ui_frame.add_child(death_screen)
+
+	var background := ColorRect.new()
+	background.color = Color(0, 0, 0, 0.72)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	death_screen.add_child(background)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	death_screen.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(360, 180)
+	center.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_top", 24)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_bottom", 24)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 12)
+	margin.add_child(box)
+
+	death_screen_label = Label.new()
+	death_screen_label.text = "You died"
+	death_screen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	death_screen_label.add_theme_font_size_override("font_size", 32)
+	box.add_child(death_screen_label)
+
+	var info := Label.new()
+	info.text = "You have run out of health."
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(info)
+
+	death_reset_button = Button.new()
+	death_reset_button.text = "Reset HP / MP"
+	death_reset_button.custom_minimum_size = Vector2(180, 44)
+	death_reset_button.pressed.connect(_on_death_reset_pressed)
+	box.add_child(death_reset_button)
+
+
+func _show_death_screen() -> void:
+	# Clear the enemy target through hide_enemy_card() so the enemy shadow is
+	# properly unselected before the target reference is removed.
+	hide_enemy_card(true)
+
+	if death_screen == null:
+		_setup_death_screen()
+	death_screen.visible = true
+	death_screen.move_to_front()
+	_update_battle_buttons()
+
+
+func _hide_death_screen() -> void:
+	if death_screen != null:
+		death_screen.visible = false
+
+
+func _on_death_reset_pressed() -> void:
+	# Do not set current_enemy_target directly here. hide_enemy_card(true) calls
+	# set_selected(false), which resets the enemy shadow when it is untargeted.
+	hide_enemy_card(true)
+	ServerManager.send_to_server({
+		"type": "c_reset_player_battle",
+	})
+
+
+func _setup_battle_buttons() -> void:
+	if battle_buttons == null:
+		return
+
+	for i in range(battle_buttons.get_child_count()):
+		var button := battle_buttons.get_child(i) as Button
+		if button == null:
+			continue
+
+		if i < skill_button_order.size():
+			var skill_id := str(skill_button_order[i])
+			original_skill_button_text[skill_id] = button.text
+			button.tooltip_text = skill_id.replace("_", " ").capitalize()
+
+
+func _select_enemy_on_server(enemy: Node) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	ServerManager.send_to_server({
+		"type": "c_select_enemy",
+		"enemy_id": _get_enemy_id(enemy),
+		"enemy_name": _get_enemy_name(enemy),
+		"enemy_hp": _get_enemy_hp(enemy),
+		"enemy_max_hp": _get_enemy_max_hp(enemy),
+		"enemy_mp": _get_enemy_mp(enemy),
+		"enemy_max_mp": _get_enemy_max_mp(enemy),
+	})
+
+
+func _get_skill_data(skill_id: String) -> Dictionary:
+	var server_skills = battle_state.get("skills", {})
+	if server_skills is Dictionary and server_skills.has(skill_id):
+		return server_skills.get(skill_id, {})
+	return {}
+
+
+func _on_battle_skill_pressed(skill_id: String) -> void:
+	var skill: Dictionary = _get_skill_data(skill_id)
+	var skill_type := str(skill.get("type", ""))
+	var needs_enemy := skill_type == "melee" or skill_type == "magic" or skill_type == "debuff"
+
+	if needs_enemy and (current_enemy_target == null or not is_instance_valid(current_enemy_target) or not current_enemy_target.visible):
+		if bool(skill.get("target_closest_enemy", false)):
+			var closest_enemy := _find_closest_visible_enemy()
+			if closest_enemy != null:
+				show_enemy_card(closest_enemy)
+				_move_player_close_to_enemy(closest_enemy)
+		if current_enemy_target == null or not is_instance_valid(current_enemy_target) or not current_enemy_target.visible:
+			return
+
+	var packet := {
+		"type": "c_use_skill",
+		"skill_id": skill_id,
+	}
+
+	if current_enemy_target != null and is_instance_valid(current_enemy_target):
+		packet["enemy_id"] = _get_enemy_id(current_enemy_target)
+		packet["enemy_name"] = _get_enemy_name(current_enemy_target)
+		packet["enemy_hp"] = _get_enemy_hp(current_enemy_target)
+		packet["enemy_max_hp"] = _get_enemy_max_hp(current_enemy_target)
+		packet["enemy_mp"] = _get_enemy_mp(current_enemy_target)
+		packet["enemy_max_mp"] = _get_enemy_max_mp(current_enemy_target)
+
+	ServerManager.send_to_server(packet)
+
+
+func apply_battle_state(state: Dictionary) -> void:
+	battle_state = state
+	battle_state_received_at = Time.get_ticks_msec() / 1000.0
+	_clear_auto_skill_pending()
+	var player = state.get("player", {})
+	var is_dead := float(player.get("hp", 100.0)) <= 0.0 or str(state.get("status", "active")) == "enemy_won"
+	if is_dead and not was_dead:
+		_show_death_screen()
+	elif not is_dead and was_dead:
+		_hide_death_screen()
+	was_dead = is_dead
+
+	if player_card != null and player_card.has_method("set_card_data"):
+		player_card.set_card_data(
+			"Player",
+			float(player.get("hp", 100.0)),
+			float(player.get("max_hp", 100.0)),
+			float(player.get("mp", 100.0)),
+			float(player.get("max_mp", 100.0))
+		)
+
+	_update_effect_labels()
+	call_deferred("_update_effect_labels")
+
+	var enemy = state.get("enemy", {})
+	if current_enemy_target != null and is_instance_valid(current_enemy_target):
+		current_enemy_target.set("hp", float(enemy.get("hp", current_enemy_target.get("hp"))))
+		current_enemy_target.set("max_hp", float(enemy.get("max_hp", current_enemy_target.get("max_hp"))))
+		current_enemy_target.set("mp", float(enemy.get("mp", current_enemy_target.get("mp"))))
+		current_enemy_target.set("max_mp", float(enemy.get("max_mp", current_enemy_target.get("max_mp"))))
+		var defeated := bool(enemy.get("defeated", false))
+		current_enemy_target.visible = not defeated
+		if defeated:
+			hide_enemy_card(true)
+		else:
+			show_enemy_card_local(current_enemy_target)
+
+	_update_battle_buttons()
+
+
+func show_enemy_card_local(enemy: Node) -> void:
+	if enemy_card == null:
+		return
 	enemy_card.visible = true
-
-	var display_name := str(enemy.get("enemy_name"))
-	if display_name == "" or display_name == "<null>":
-		display_name = enemy.name
-
+	var display_name := _get_enemy_name(enemy)
 	var hp_value := float(enemy.get("hp")) if enemy.get("hp") != null else 100.0
 	var hp_max := float(enemy.get("max_hp")) if enemy.get("max_hp") != null else 100.0
 	var mp_value := float(enemy.get("mp")) if enemy.get("mp") != null else 0.0
 	var mp_max := float(enemy.get("max_mp")) if enemy.get("max_mp") != null else 0.0
-
 	if enemy_card.has_method("set_card_data"):
 		enemy_card.set_card_data(display_name, hp_value, hp_max, mp_value, mp_max)
 
+	_update_effect_labels()
+	call_deferred("_update_effect_labels")
 
-func hide_enemy_card() -> void:
-	current_enemy_target = null
 
-	if enemy_card != null:
-		enemy_card.visible = false
+func _update_battle_buttons() -> void:
+	if battle_buttons == null:
+		return
+
+	for i in range(battle_buttons.get_child_count()):
+		var button := battle_buttons.get_child(i) as Button
+		if button == null or i >= skill_button_order.size():
+			continue
+		var skill_id = skill_button_order[i]
+		var usable := _is_skill_usable(skill_id, false)
+		button.disabled = not usable or _is_auto_skill_pending(str(skill_id))
+		
+		button.tooltip_text = _build_skill_tooltip(skill_id)
+
+
+
+
+func _setup_skill_info_panel() -> void:
+	# Skill details are shown only in button tooltips.
+	# This prevents duplicate info from appearing in a separate panel.
+	if skill_info_panel != null:
+		skill_info_panel.visible = false
+
+
+func _find_label_by_name(root: Node, label_name: String) -> Label:
+	if root == null:
+		return null
+
+	if root.name == label_name and root is Label:
+		return root as Label
+
+	for child in root.get_children():
+		var result := _find_label_by_name(child, label_name)
+		if result != null:
+			return result
+
+	return null
+
+
+func _hide_effect_labels() -> void:
+	_set_effects_label(player_effects_label, [])
+	_set_effects_label(enemy_effects_label, [])
+
+
+func _update_effect_labels() -> void:
+	var player = battle_state.get("player", {})
+	var enemy = battle_state.get("enemy", {})
+
+	# Re-resolve these each update. On some loads the @onready references
+	# can be null/stale, which means player buffs such as Defend are applied
+	# server-side but never written to the card label.
+
+	_set_effects_label(player_effects_label, player.get("effects", []))
+
+	var enemy_has_visible_card := enemy_card != null and enemy_card.visible
+	var enemy_has_target = current_enemy_target != null and is_instance_valid(current_enemy_target) and current_enemy_target.visible
+	var enemy_defeated := bool(enemy.get("defeated", false))
+
+	if enemy_has_visible_card and enemy_has_target and not enemy_defeated:
+		_set_effects_label(enemy_effects_label, enemy.get("effects", []))
+	else:
+		_set_effects_label(enemy_effects_label, [])
+
+
+func _set_effects_label(label: Label, effects) -> void:
+	if label == null:
+		return
+
+	var text := _format_active_effects(effects)
+	label.text = text
+	label.visible = text != ""
+
+
+func _format_active_effects(effects) -> String:
+	if not effects is Array or effects.is_empty():
+		return ""
+
+	var elapsed_since_state = max(0.0, (Time.get_ticks_msec() / 1000.0) - battle_state_received_at)
+	var names := []
+	for effect in effects:
+		if not effect is Dictionary:
+			continue
+
+		if bool(effect.get("hide_effect", false)):
+			continue
+
+		var effect_name := str(effect.get("name", effect.get("id", "Effect")))
+		if effect_name == "" or effect_name == "<null>":
+			effect_name = "Effect"
+
+		var stacks := int(effect.get("stacks", 1))
+		var received_remaining := float(effect.get("remaining", 0.0))
+		var remaining = max(0.0, received_remaining - elapsed_since_state) if received_remaining > 0.0 else 0.0
+
+		# Timed effects may expire locally before the next server packet. Hide them
+		# at zero, while permanent effects with no timer still stay visible.
+		if received_remaining > 0.0 and remaining <= 0.0:
+			continue
+
+		var effect_text = effect_name
+		if stacks > 1:
+			effect_text += " x%d" % stacks
+		if remaining > 0.0:
+			effect_text += " %ds" % ceili(remaining)
+
+		names.append(effect_text)
+
+	if names.is_empty():
+		return ""
+
+	return "\n".join(names)
+
+
+func _show_skill_info(skill_id: String) -> void:
+	selected_skill_info_id = skill_id
+
+	if skill_info_title == null or skill_info_body == null:
+		return
+
+	var skill := _get_skill_data(skill_id)
+	if skill.is_empty():
+		skill_info_title.text = skill_id.replace("_", " ").capitalize()
+		skill_info_body.text = "No skill data received from server yet."
+		return
+
+	skill_info_title.text = str(skill.get("name", skill_id))
+	skill_info_body.text = _build_skill_info_text(skill_id)
+
+
+func _build_skill_tooltip(skill_id: String) -> String:
+	var skill := _get_skill_data(skill_id)
+	if skill.is_empty():
+		return skill_id.replace("_", " ").capitalize()
+
+	return _build_skill_info_text(skill_id)
+
+
+func _build_skill_info_text(skill_id: String) -> String:
+	var skill := _get_skill_data(skill_id)
+	if skill.is_empty():
+		return "No skill data."
+
+	var lines := []
+	var skill_type := str(skill.get("type", "melee"))
+	var damage := float(skill.get("damage", 0.0))
+	var mp_cost := float(skill.get("mp_cost", 0.0))
+	var cooldown := float(skill.get("cooldown", 0.0))
+	var remaining := _skill_cooldown_remaining(skill_id)
+	var global_remaining := _global_skill_cooldown_remaining()
+
+	lines.append("Type: %s" % skill_type.capitalize())
+
+	if damage > 0.0:
+		lines.append("Damage: %s" % _format_number(damage))
+
+	lines.append("MP Cost: %s" % _format_number(mp_cost))
+	lines.append("Cooldown: %.1fs" % cooldown)
+
+	if remaining > 0.0:
+		lines.append("Ready in: %.1fs" % remaining)
+	elif global_remaining > 0.0:
+		lines.append("Global cooldown: %.1fs" % global_remaining)
+
+	if bool(skill.get("target_closest_enemy", false)):
+		lines.append("Targeting: closest enemy")
+	elif skill_type == "melee" or skill_type == "magic" or skill_type == "debuff":
+		lines.append("Targeting: selected enemy")
+	else:
+		lines.append("Targeting: self")
+
+	var effects_text := _format_skill_effects(skill.get("effects", []))
+	if effects_text != "":
+		lines.append("")
+		lines.append(effects_text)
+
+	return "\n".join(lines)
+
+
+func _format_skill_effects(effects) -> String:
+	if not effects is Array or effects.is_empty():
+		return ""
+
+	var lines := ["Effects:"]
+	for effect in effects:
+		if not effect is Dictionary:
+			continue
+
+		lines.append("- %s" % _format_skill_effect(effect))
+
+	return "\n".join(lines)
+
+
+func _format_skill_effect(effect: Dictionary) -> String:
+	var effect_name := str(effect.get("name", effect.get("id", "Effect")))
+	var effect_type := str(effect.get("type", ""))
+	var flat := float(effect.get("flat_amount", 0.0))
+	var percent := float(effect.get("percent_amount", 0.0))
+	var duration := float(effect.get("duration", 0.0))
+	var tick_rate := float(effect.get("tick_rate", 0.0))
+	var max_stacks := int(effect.get("max_stacks", 1))
+
+	var parts := [effect_name]
+
+	if not is_equal_approx(percent, 0.0):
+		parts.append("%+d%%" % roundi(percent * 100.0))
+
+	if not is_equal_approx(flat, 0.0):
+		parts.append("%+s HP" % _format_number(flat))
+
+	if duration > 0.0:
+		parts.append("for %.1fs" % duration)
+
+	if tick_rate > 0.0 and (effect_type == "dot" or effect_type == "hot"):
+		parts.append("every %.1fs" % tick_rate)
+
+	if max_stacks > 1:
+		parts.append("max %d stacks" % max_stacks)
+
+	return " ".join(parts)
+
+
+func _format_stat_name(stat: String) -> String:
+	match stat:
+		"damage":
+			return "Damage"
+		"defence":
+			return "Defence"
+		"haste":
+			return "Haste"
+		"hit_chance":
+			return "Hit Chance"
+		"dodge":
+			return "Dodge"
+		"crit_chance":
+			return "Crit Chance"
+		"crit_damage":
+			return "Crit Damage"
+		"hp_regen":
+			return "HP Regen"
+		"mp_regen":
+			return "MP Regen"
+		_:
+			return stat.replace("_", " ").capitalize()
+
+
+func _format_number(value: float) -> String:
+	if is_equal_approx(value, round(value)):
+		return str(int(round(value)))
+	return "%.1f" % value
+
+
+func _global_skill_cooldown_remaining() -> float:
+	var player = battle_state.get("player", {})
+	var cooldowns = player.get("cooldowns", {})
+	var received_remaining := float(cooldowns.get("_global_skill", 0.0))
+	var elapsed_since_state = max(0.0, Time.get_ticks_msec() / 1000.0 - battle_state_received_at)
+	return max(0.0, received_remaining - elapsed_since_state)
+
+func _skill_cooldown_remaining(skill_id: String) -> float:
+	var player = battle_state.get("player", {})
+	var cooldowns = player.get("cooldowns", {})
+	var received_remaining := float(cooldowns.get(skill_id, 0.0))
+	var elapsed_since_state = max(0.0, Time.get_ticks_msec() / 1000.0 - battle_state_received_at)
+	return max(0.0, received_remaining - elapsed_since_state)
+
+
+func _can_skill_find_target(skill_id: String) -> bool:
+	var skill: Dictionary = _get_skill_data(skill_id)
+	return bool(skill.get("target_closest_enemy", false)) and _find_closest_visible_enemy() != null
+
+
+func _is_skill_usable(skill_id: String, require_target_now: bool = true) -> bool:
+	var player = battle_state.get("player", {})
+	var skill: Dictionary = _get_skill_data(skill_id)
+	if skill.is_empty():
+		return false
+	if str(battle_state.get("status", "active")) == "enemy_won":
+		return false
+	if float(player.get("hp", 100.0)) <= 0.0:
+		return false
+	if _global_skill_cooldown_remaining() > 0.0:
+		return false
+	if _skill_cooldown_remaining(skill_id) > 0.0:
+		return false
+	if float(player.get("mp", 0.0)) < float(skill.get("mp_cost", 0.0)):
+		return false
+
+	var needs_enemy := str(skill.get("type", "")) == "melee" or str(skill.get("type", "")) == "magic" or str(skill.get("type", "")) == "debuff"
+	if needs_enemy:
+		var has_target = current_enemy_target != null and is_instance_valid(current_enemy_target) and current_enemy_target.visible
+		if not has_target and require_target_now:
+			return _can_skill_find_target(skill_id)
+		if not has_target and not require_target_now:
+			return _can_skill_find_target(skill_id)
+	return true
+
+
+func _ensure_auto_skill_pending() -> void:
+	if auto_skill_pending == null:
+		auto_skill_pending = {}
+
+
+func _set_auto_skill_pending(skill_id: String) -> void:
+	_ensure_auto_skill_pending()
+	auto_skill_pending[skill_id] = Time.get_ticks_msec() / 1000.0
+
+
+func _clear_auto_skill_pending() -> void:
+	_ensure_auto_skill_pending()
+	auto_skill_pending.clear()
+
+
+func _is_auto_skill_pending(skill_id: String) -> bool:
+	_ensure_auto_skill_pending()
+
+	if not auto_skill_pending.has(skill_id):
+		return false
+
+	var sent_at := float(auto_skill_pending.get(skill_id, 0.0))
+	var elapsed := (Time.get_ticks_msec() / 1000.0) - sent_at
+
+	if elapsed > AUTO_SKILL_PENDING_TIMEOUT:
+		auto_skill_pending.erase(skill_id)
+		return false
+
+	return true
+
+func _find_closest_visible_enemy() -> Node:
+	var player := SceneManager.player
+	if player == null or not is_instance_valid(player):
+		return null
+
+	var best_enemy: Node = null
+	var best_distance := INF
+	for enemy in get_tree().get_nodes_in_group("targetable_enemies"):
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		if not enemy.visible:
+			continue
+		if enemy is Node2D:
+			var distance := (enemy as Node2D).global_position.distance_squared_to(player.global_position)
+			if distance < best_distance:
+				best_distance = distance
+				best_enemy = enemy
+	return best_enemy
+
+
+func _get_enemy_id(enemy: Node) -> String:
+	return str(enemy.get_path())
+
+
+func _get_enemy_hp(enemy: Node) -> float:
+	var value = enemy.get("hp")
+	if value == null:
+		return _get_enemy_max_hp(enemy)
+	return float(value)
+
+
+func _get_enemy_max_hp(enemy: Node) -> float:
+	var value = enemy.get("max_hp")
+	if value == null:
+		return 100.0
+	return max(1.0, float(value))
+
+
+func _get_enemy_mp(enemy: Node) -> float:
+	var value = enemy.get("mp")
+	if value == null:
+		return _get_enemy_max_mp(enemy)
+	return float(value)
+
+
+func _get_enemy_max_mp(enemy: Node) -> float:
+	var value = enemy.get("max_mp")
+	if value == null:
+		return 100.0
+	return max(0.0, float(value))
+
+
+func _get_enemy_name(enemy: Node) -> String:
+	var display_name := str(enemy.get("enemy_name"))
+	if display_name == "" or display_name == "<null>":
+		display_name = enemy.name
+	return display_name
+
+
+func _on_button_pressed() -> void:
+	_on_battle_skill_pressed("slash")
+
+func _on_button_2_pressed() -> void:
+	_on_battle_skill_pressed("fire")
+
+func _on_button_3_pressed() -> void:
+	_on_battle_skill_pressed("defend")
+
+func _on_button_4_pressed() -> void:
+	_on_battle_skill_pressed("heal")
+
+func _on_button_5_pressed() -> void:
+	_on_battle_skill_pressed("ultra_attack")

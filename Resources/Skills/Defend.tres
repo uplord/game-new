@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillResource" format=3 uid="uid://cxihia6rldiu1"]
+
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://Resources/Skills/StatusEffectResource.gd" id="1_effect"]
+[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://Resources/Skills/SkillResource.gd" id="2_skill"]
+[ext_resource type="Resource" uid="uid://cf1mjaq2i8k67" path="res://Resources/Skills/Effects/Defence.tres" id="3_defence"]
+
+[resource]
+script = ExtResource("2_skill")
+skill_id = "defend"
+skill_name = "Defend"
+skill_type = "buff"
+cooldown = 8.0
+effects = Array[ExtResource("1_effect")]([ExtResource("3_defence")])

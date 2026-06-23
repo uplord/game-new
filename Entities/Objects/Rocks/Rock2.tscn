@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://bewa5sr8dbg8x"]
+
+[ext_resource type="Script" uid="uid://dglkbqk7fix3k" path="res://Entities/Objects/Object.gd" id="1_7hhj4"]
+[ext_resource type="Texture2D" uid="uid://b8p1vo4t0o78w" path="res://Entities/Objects/Rocks/Art/rock-2.png" id="2_7hhj4"]
+[ext_resource type="Shader" uid="uid://c461sxt8qv8sf" path="res://Utilities/Shaders/shadow.gdshader" id="2_wmb4s"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yl5vf"]
+shader = ExtResource("2_wmb4s")
+shader_parameter/selected = false
+shader_parameter/edge_softness = 0.08
+
+[node name="Rock" type="Node2D" unique_id=650915074]
+script = ExtResource("1_7hhj4")
+
+[node name="Shadow" type="ColorRect" parent="." unique_id=1470608448]
+material = SubResource("ShaderMaterial_yl5vf")
+offset_left = -131.0
+offset_top = -81.0
+offset_right = 129.0
+offset_bottom = 39.0
+mouse_filter = 2
+
+[node name="Image" type="Sprite2D" parent="." unique_id=624286617]
+position = Vector2(0, -73)
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_7hhj4")

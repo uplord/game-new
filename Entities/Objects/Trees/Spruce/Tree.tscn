@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://b5owij6a532fg"]
+
+[ext_resource type="Script" uid="uid://dglkbqk7fix3k" path="res://Entities/Objects/Object.gd" id="1_0borc"]
+[ext_resource type="Texture2D" uid="uid://bmwl7mr5fsh44" path="res://Entities/Objects/Trees/Spruce/Art/tree.png" id="2_lpyto"]
+
+[node name="Tree" type="Node2D" unique_id=1125370262]
+script = ExtResource("1_0borc")
+
+[node name="Image" type="Sprite2D" parent="." unique_id=607469073]
+scale = Vector2(0.75, 0.75)
+texture = ExtResource("2_lpyto")
+offset = Vector2(0, -283.5)

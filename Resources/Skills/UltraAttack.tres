@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillResource" format=3 uid="uid://bqy0ks6dhd8hg"]
+
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://Resources/Skills/StatusEffectResource.gd" id="1_2dw33"]
+[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://Resources/Skills/SkillResource.gd" id="2_jldxh"]
+
+[resource]
+script = ExtResource("2_jldxh")
+skill_id = "ultra_attack"
+skill_name = "Ultra Attack"
+damage = 500
+mp_cost = 50
+cooldown = 12.0
+target_closest_enemy = true

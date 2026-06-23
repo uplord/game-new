@@ -1,3 +1,4 @@
+@tool
 extends Node2D
 
 var body_type: String = "Male"

@@ -18,13 +18,18 @@ enum MouseMode {
 }
 
 const HOLD_THRESHOLD := 0.2
-const FOLLOW_START_DISTANCE := 64.0
+var FOLLOW_START_DISTANCE := 64.0
 const FOLLOW_STOP_DISTANCE := 16.0
 const HOLD_SEND_INTERVAL := 0.033
 const HOLD_TARGET_CHANGE_DISTANCE := 6.0
 const CLICK_STOP_DISTANCE := 8.0
+
+const ENGAGEMENT_PADDING := 48.0
+const MIN_ENEMY_APPROACH_DISTANCE := 128.0
+const ENEMY_DISTANCE_TOLERANCE := 8.0
+
 const MIN_CLICK_DISTANCE := 10.0
-const MOVE_THRESHOLD := 0.01
+const MOVE_THRESHOLD := 2.0
 const POSITION_SEND_INTERVAL := 0.016
 const POSITION_SEND_DISTANCE := 1.0
 
@@ -49,6 +54,8 @@ var was_moving_last_frame := false
 var movement_sequence := 0
 
 var prev_pose: PlayerPose = PlayerPose.IDLE
+var approach_enemy: Node2D = null
+var attacking_pose_active := false
 
 
 func _ready() -> void:
@@ -81,6 +88,7 @@ func _ready() -> void:
 
 	camera_controller = game.get_node("CameraManager")
 	body_start_scale = body.scale
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if movement_locked:
@@ -139,10 +147,16 @@ func _physics_process(_delta: float) -> void:
 		var move_speed := _get_move_speed()
 		velocity = input_vector * move_speed
 		move_and_slide()
+		
+		if get_slide_collision_count() > 0 and mouse_mode == MouseMode.CLICK_MOVE:
+			mouse_mode = MouseMode.NONE
+			click_target = Vector2.ZERO
+			velocity = Vector2.ZERO
 
 	var movement_delta := position - prev_pos
 
 	_update_facing_from_movement(movement_delta)
+	_update_facing_towards_approach_enemy()
 	_update_movement_state(prev_pos)
 	_send_position_if_needed()
 	_update_camera_look_ahead()
@@ -161,6 +175,7 @@ func _get_movement_input() -> Vector2:
 
 	if keyboard_input != Vector2.ZERO:
 		_clear_enemy_target()
+		approach_enemy = null
 		mouse_mode = MouseMode.NONE
 		follow_moving = false
 		return keyboard_input
@@ -182,6 +197,11 @@ func _get_click_move_input() -> Vector2:
 	if to_target.length_squared() <= stop_distance_sq:
 		mouse_mode = MouseMode.NONE
 		click_target = Vector2.ZERO
+
+		if approach_enemy != null and is_instance_valid(approach_enemy):
+			_face_global_position(approach_enemy.global_position)
+
+		approach_enemy = null
 		_send_stop()
 		return Vector2.ZERO
 
@@ -189,9 +209,8 @@ func _get_click_move_input() -> Vector2:
 
 
 func _get_hold_follow_input() -> Vector2:
-	var mouse_pos := _get_map_mouse_position()
-	var dir := mouse_pos - position
-	var dist_sq := dir.length_squared()
+	var screen_dir := _get_screen_mouse_direction()
+	var dist_sq := screen_dir.length_squared()
 
 	if not follow_moving and dist_sq > FOLLOW_START_DISTANCE * FOLLOW_START_DISTANCE:
 		follow_moving = true
@@ -201,9 +220,10 @@ func _get_hold_follow_input() -> Vector2:
 	if not follow_moving:
 		return Vector2.ZERO
 
+	var mouse_pos := _get_map_mouse_position()
 	_send_hold_move_if_needed(mouse_pos)
 
-	return dir.normalized()
+	return screen_dir.normalized()
 
 
 func _on_click() -> void:
@@ -211,6 +231,7 @@ func _on_click() -> void:
 	if clicked_enemy != null:
 		if clicked_enemy.has_method("target"):
 			clicked_enemy.target()
+			move_close_to_enemy(clicked_enemy)
 		else:
 			_clear_enemy_target()
 		return
@@ -221,6 +242,7 @@ func _on_click() -> void:
 		return
 
 	_clear_enemy_target()
+	approach_enemy = null
 	click_target = new_target
 	mouse_mode = MouseMode.CLICK_MOVE
 	follow_moving = false
@@ -230,6 +252,7 @@ func _on_click() -> void:
 
 func _on_hold_start() -> void:
 	_clear_enemy_target()
+	approach_enemy = null
 	click_target = Vector2.ZERO
 	mouse_mode = MouseMode.HOLD_FOLLOW
 	follow_moving = false
@@ -248,6 +271,85 @@ func _on_hold_release() -> void:
 	_send_stop()
 
 
+func move_close_to_enemy(enemy: Node) -> void:
+	_move_close_to_enemy(enemy)
+
+
+func _move_close_to_enemy(enemy: Node) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	if not (enemy is Node2D):
+		return
+
+	approach_enemy = enemy as Node2D
+
+	var enemy_position := approach_enemy.global_position
+	var desired_distance := get_enemy_approach_distance(self, approach_enemy)
+
+	var offset_from_enemy := global_position - enemy_position
+	var current_distance := offset_from_enemy.length()
+
+	_face_global_position(enemy_position)
+
+	if abs(current_distance - desired_distance) <= ENEMY_DISTANCE_TOLERANCE:
+		mouse_mode = MouseMode.NONE
+		click_target = Vector2.ZERO
+		_send_stop()
+		return
+
+	var direction_away_from_enemy := Vector2.ZERO
+
+	if current_distance > 0.01:
+		direction_away_from_enemy = offset_from_enemy.normalized()
+	else:
+		direction_away_from_enemy = Vector2.LEFT if facing > 0 else Vector2.RIGHT
+
+	var desired_global_position := enemy_position + direction_away_from_enemy * desired_distance
+
+	var desired_local_position := desired_global_position
+	if get_parent() is Node2D:
+		desired_local_position = (get_parent() as Node2D).to_local(desired_global_position)
+
+	click_target = desired_local_position
+	mouse_mode = MouseMode.CLICK_MOVE
+	follow_moving = false
+	last_sent_hold_target = Vector2.INF
+	last_hold_send_time = 0.0
+
+	_send_move(click_target)
+
+
+func get_enemy_approach_distance(player: Node, enemy: Node) -> float:
+	var player_half := get_collision_width(player) * 0.5
+	var enemy_half := get_collision_width(enemy) * 0.5
+
+	return max(
+		player_half + enemy_half + ENGAGEMENT_PADDING,
+		MIN_ENEMY_APPROACH_DISTANCE
+	)
+
+
+func get_collision_width(node: Node) -> float:
+	if node == null or not is_instance_valid(node):
+		return MIN_ENEMY_APPROACH_DISTANCE
+
+	var shape_node := node.find_child("CollisionShape2D", true, false) as CollisionShape2D
+	if shape_node == null or shape_node.shape == null:
+		return MIN_ENEMY_APPROACH_DISTANCE
+
+	var shape := shape_node.shape
+	var scale_x = abs(shape_node.global_scale.x)
+
+	if shape is RectangleShape2D:
+		return shape.size.x * scale_x
+
+	if shape is CapsuleShape2D:
+		return shape.radius * 2.0 * scale_x
+
+	if shape is CircleShape2D:
+		return shape.radius * 2.0 * scale_x
+
+	return MIN_ENEMY_APPROACH_DISTANCE
 
 
 func _clear_enemy_target() -> void:
@@ -255,12 +357,14 @@ func _clear_enemy_target() -> void:
 	if ui != null and ui.has_method("hide_enemy_card"):
 		ui.hide_enemy_card()
 
+
 func cancel_mouse_movement() -> void:
 	mouse_press_active = false
 	hold_started = false
 	mouse_mode = MouseMode.NONE
 	follow_moving = false
 	click_target = Vector2.ZERO
+	approach_enemy = null
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
 	_send_stop()
@@ -286,12 +390,14 @@ func _send_hold_move_if_needed(mouse_pos: Vector2) -> void:
 
 func _update_movement_state(prev_pos: Vector2) -> void:
 	var movement := position - prev_pos
-	actually_moving = movement.length_squared() > 4.0
+	actually_moving = movement.length_squared() > 4.0 or velocity.length_squared() > 4.0
 	
 	var desired_pose: PlayerPose
 
 	if actually_moving:
 		desired_pose = PlayerPose.RUNNING
+	elif attacking_pose_active:
+		desired_pose = PlayerPose.FIGHT
 	else:
 		desired_pose = PlayerPose.IDLE
 
@@ -315,6 +421,16 @@ func _update_camera_look_ahead() -> void:
 		camera_controller = null
 		return
 
+	if mouse_mode == MouseMode.HOLD_FOLLOW and mouse_press_active:
+		var screen_dir := _get_screen_mouse_direction()
+
+		if screen_dir.length_squared() <= FOLLOW_STOP_DISTANCE * FOLLOW_STOP_DISTANCE:
+			camera_controller.set_look_ahead_direction(0.0)
+		else:
+			camera_controller.set_look_ahead_direction(clamp(screen_dir.normalized().x, -1.0, 1.0))
+
+		return
+
 	var move_speed := _get_move_speed()
 
 	if move_speed == 0.0:
@@ -325,11 +441,40 @@ func _update_camera_look_ahead() -> void:
 
 
 func _update_facing_from_movement(movement_delta: Vector2) -> void:
-	if abs(movement_delta.x) > MOVE_THRESHOLD:
-		last_facing = sign(movement_delta.x)
+	if approach_enemy != null and is_instance_valid(approach_enemy):
+		_face_global_position(approach_enemy.global_position)
+		return
+
+	if mouse_mode == MouseMode.HOLD_FOLLOW and mouse_press_active:
+		var screen_dir := _get_screen_mouse_direction()
+		if abs(screen_dir.x) > FOLLOW_STOP_DISTANCE:
+			last_facing = sign(screen_dir.x)
+	else:
+		if abs(movement_delta.x) > 2.0:
+			last_facing = sign(movement_delta.x)
 
 	facing = last_facing
+	_apply_facing()
 
+
+func _update_facing_towards_approach_enemy() -> void:
+	if approach_enemy == null or not is_instance_valid(approach_enemy):
+		return
+
+	_face_global_position(approach_enemy.global_position)
+
+
+func _face_global_position(target_global_position: Vector2) -> void:
+	var delta_x := target_global_position.x - global_position.x
+	if abs(delta_x) <= MOVE_THRESHOLD:
+		return
+
+	last_facing = sign(delta_x)
+	facing = last_facing
+	_apply_facing()
+
+
+func _apply_facing() -> void:
 	if body_start_scale != Vector2.ZERO:
 		body.scale.x = body_start_scale.x * facing
 
@@ -383,9 +528,16 @@ func _get_map_mouse_position() -> Vector2:
 
 	return get_global_mouse_position()
 
+
 func _next_movement_sequence() -> int:
 	movement_sequence += 1
 	return movement_sequence
+
+
+func _get_screen_mouse_direction() -> Vector2:
+	var player_screen_pos := get_global_transform_with_canvas().origin
+	var mouse_screen_pos := get_viewport().get_mouse_position()
+	return mouse_screen_pos - player_screen_pos
 
 
 func _send_position_if_needed() -> void:
@@ -411,9 +563,12 @@ func _send_position_if_needed() -> void:
 		"client_time": now,
 		"position": position,
 		"velocity": velocity,
+		"facing": facing,
+		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})
+
 
 func _send_move(_target: Vector2) -> void:
 	ServerManager.send_to_server({
@@ -422,6 +577,8 @@ func _send_move(_target: Vector2) -> void:
 		"client_time": _now(),
 		"position": position,
 		"velocity": velocity,
+		"facing": facing,
+		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})
@@ -435,6 +592,7 @@ func _send_stop() -> void:
 		"position": position,
 		"velocity": Vector2.ZERO,
 		"facing": facing,
+		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 	})

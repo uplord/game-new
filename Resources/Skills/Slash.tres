@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SkillResource" format=3 uid="uid://dkdq6gqq1uxmw"]
+
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://Resources/Skills/StatusEffectResource.gd" id="1_effect"]
+[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://Resources/Skills/SkillResource.gd" id="2_skill"]
+[ext_resource type="Resource" uid="uid://ddd2touup02af" path="res://Resources/Skills/Effects/MpRegen.tres" id="3_mp_regen"]
+
+[resource]
+script = ExtResource("2_skill")
+skill_id = "slash"
+skill_name = "Slash"
+damage = 10
+cooldown = 2.0
+target_closest_enemy = true
+effects = Array[ExtResource("1_effect")]([ExtResource("3_mp_regen")])

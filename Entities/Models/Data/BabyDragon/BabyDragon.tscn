@@ -9,8 +9,8 @@ size = Vector2(120, 100)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pl6v2"]
 shader = ExtResource("2_1cx3c")
-shader_parameter/opacity = 0.1
-shader_parameter/softness = 0.25
+shader_parameter/selected = false
+shader_parameter/edge_softness = 0.08
 
 [node name="BabyDragon" type="Node2D" unique_id=278953931]
 script = ExtResource("1_h62or")
@@ -24,10 +24,10 @@ shape = SubResource("RectangleShape2D_target")
 
 [node name="Shadow" type="ColorRect" parent="." unique_id=627547793]
 material = SubResource("ShaderMaterial_pl6v2")
-offset_left = -50.0
-offset_top = -16.0
-offset_right = 50.0
-offset_bottom = 16.0
+offset_left = -70.0
+offset_top = -24.0
+offset_right = 70.0
+offset_bottom = 24.0
 mouse_filter = 2
 
 [node name="Body" type="Node2D" parent="." unique_id=2077736839]

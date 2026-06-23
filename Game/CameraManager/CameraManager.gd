@@ -21,19 +21,30 @@ var current_look_ahead := 0.0
 var target_look_ahead := 0.0
 var look_ahead_distance := 0.0
 
+var enemy_focus_active := false
+var enemy_focus_direction := 0.0
+
 func _ready():
 	get_window().size_changed.connect(_on_window_resized)
 	call_deferred("_init_camera")
 
 
 func _process(delta):
+	var desired_look_ahead := target_look_ahead
+
+	if enemy_focus_active:
+		desired_look_ahead = enemy_focus_direction
+
 	current_look_ahead = lerp(
 		current_look_ahead,
-		target_look_ahead,
+		desired_look_ahead,
 		1.0 - exp(-look_ahead_speed * delta)
 	)
 
-	var new_offset := Vector2(current_look_ahead * look_ahead_distance, -game_offset)
+	var new_offset := Vector2(
+		current_look_ahead * look_ahead_distance,
+		-game_offset
+	)
 
 	if phantom_camera.follow_offset.distance_squared_to(new_offset) > 0.01:
 		phantom_camera.follow_offset = new_offset
@@ -147,3 +158,11 @@ func apply_black_bars() -> void:
 
 	bar_top.visible = false
 	bar_bottom.visible = false
+
+
+func focus_enemy(direction: float) -> void:
+	enemy_focus_active = true
+	enemy_focus_direction = clamp(direction, -1.0, 1.0)
+
+func clear_enemy_focus() -> void:
+	enemy_focus_active = false

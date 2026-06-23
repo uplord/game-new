@@ -31,10 +31,12 @@ signal targeted(enemy: Node)
 @export var enemy_name := "Enemy"
 @export var max_hp := 100.0
 @export var hp := 100.0
-@export var max_mp := 0.0
-@export var mp := 0.0
+@export var max_mp := 100.0
+@export var mp := 100.0
 
 @onready var body: Node = $Base/Model
+
+var is_selected := false
 
 
 func _ready() -> void:
@@ -46,6 +48,28 @@ func _ready() -> void:
 	add_to_group("targetable_enemies")
 
 	_connect_target_area()
+
+
+func set_selected(value: bool) -> void:
+	is_selected = value
+
+	var model_node := get_node_or_null("Base/Model")
+	if model_node == null:
+		return
+
+	var shadow := model_node.find_child("Shadow", true, false)
+	if shadow == null:
+		return
+
+	if shadow.material:
+		shadow.material = shadow.material.duplicate()
+
+	shadow.modulate = Color.WHITE
+
+	if value:
+		shadow.material.set_shader_parameter("selected", true)
+	else:
+		shadow.material.set_shader_parameter("selected", false)
 
 
 func _sync_model_options() -> void:
@@ -86,9 +110,14 @@ func target() -> void:
 	if Engine.is_editor_hint():
 		return
 
-	_cancel_player_mouse_movement()
 	targeted.emit(self)
 	_show_enemy_card()
+	_move_player_close_to_self()
+
+func _move_player_close_to_self() -> void:
+	var player := SceneManager.player
+	if player != null and is_instance_valid(player) and player.has_method("move_close_to_enemy"):
+		player.move_close_to_enemy(self)
 
 func _show_enemy_card() -> void:
 	var game := get_tree().root.get_node_or_null("Game")

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SkillResource" format=3 uid="uid://dmdo180f8llfb"]
+
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://Resources/Skills/StatusEffectResource.gd" id="1_effect"]
+[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://Resources/Skills/SkillResource.gd" id="2_skill"]
+[ext_resource type="Resource" uid="uid://cuocbyrtgube7" path="res://Resources/Skills/Effects/Burn.tres" id="3_burn"]
+
+[resource]
+script = ExtResource("2_skill")
+skill_id = "fire"
+skill_name = "Fire"
+skill_type = "magic"
+damage = 40
+mp_cost = 15
+cooldown = 4.0
+target_closest_enemy = true
+effects = Array[ExtResource("1_effect")]([ExtResource("3_burn"), null])

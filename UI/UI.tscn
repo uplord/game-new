@@ -10,8 +10,6 @@
 [ext_resource type="Texture2D" uid="uid://c0sbnddxlxbcx" path="res://UI/Button/Art/Icons/Skull_Trim.png" id="4_f1fl4"]
 [ext_resource type="Texture2D" uid="uid://df3iqvmfiudun" path="res://UI/Button/Art/Icons/Settings_Trim.png" id="4_kncd2"]
 [ext_resource type="Texture2D" uid="uid://bpb522tre45mc" path="res://UI/Button/Art/Icons/Map_Icon.png" id="5_1sm7k"]
-[ext_resource type="Texture2D" uid="uid://cr5aspo0kdmqg" path="res://UI/Button/Art/Icons/Axe_Icon.png" id="5_d050y"]
-[ext_resource type="Texture2D" uid="uid://xyciro238tbp" path="res://UI/Button/Art/Icons/Axe_Trim.png" id="6_qgmx8"]
 [ext_resource type="Texture2D" uid="uid://grrutfrs3vmr" path="res://UI/Button/Art/Icons/Map_Trim.png" id="6_xtxff"]
 [ext_resource type="Texture2D" uid="uid://cbu6tk5xg1o7m" path="res://UI/Button/Art/Icons/Inventory_Icon.png" id="7_1sm7k"]
 [ext_resource type="Texture2D" uid="uid://bpyg5xjesrwpf" path="res://UI/Button/Art/Icons/Stats_Icon.png" id="7_uk6e0"]
@@ -24,6 +22,8 @@
 [ext_resource type="Texture2D" uid="uid://caa28k21mnukr" path="res://UI/Button/Art/Icons/Book_Trim.png" id="10_2jerp"]
 [ext_resource type="Texture2D" uid="uid://cd1iam7wl3i1" path="res://UI/Button/Art/Icons/Shield_Trim.png" id="10_017wa"]
 [ext_resource type="PackedScene" uid="uid://bi1hpc0h26ppw" path="res://UI/PlayerCard/PlayerCard.tscn" id="14_vh35o"]
+[ext_resource type="Texture2D" uid="uid://cedsljegnumbp" path="res://UI/Button/Art/Icons/Heal_Icon.png" id="21_vh35o"]
+[ext_resource type="Texture2D" uid="uid://oy3ycw6c11cq" path="res://UI/Button/Art/Icons/Heal_Trim.png" id="22_2jerp"]
 
 [node name="UI" type="CanvasLayer" unique_id=452661851]
 script = ExtResource("1_6dd3c")
@@ -63,6 +63,7 @@ theme_override_constants/margin_bottom = 8
 
 [node name="BoxContainer" type="BoxContainer" parent="UIFrame/TopUI/MarginContainer" unique_id=145782575]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 8
 
 [node name="CardsContainer" type="HBoxContainer" parent="UIFrame/TopUI/MarginContainer/BoxContainer" unique_id=2083543804]
@@ -88,6 +89,7 @@ custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("7_1sm7k")
 icon_trim = ExtResource("8_xtxff")
+icon_scale = 0.5
 offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
@@ -96,6 +98,7 @@ custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("9_vh35o")
 icon_trim = ExtResource("10_2jerp")
+icon_scale = 0.5
 offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
@@ -104,6 +107,7 @@ custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("7_uk6e0")
 icon_trim = ExtResource("8_idhk4")
+icon_scale = 0.5
 offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
@@ -112,6 +116,7 @@ custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("5_1sm7k")
 icon_trim = ExtResource("6_xtxff")
+icon_scale = 0.5
 offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
@@ -120,6 +125,7 @@ custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 icon_image = ExtResource("3_t31p1")
 icon_trim = ExtResource("4_kncd2")
+icon_scale = 0.5
 offset_border_color = Color(1, 1, 1, 1)
 trim_color = Color(0.69648564, 0.21802102, 0.37342674, 1)
 
@@ -139,7 +145,7 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -119.0
+offset_top = -105.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
@@ -174,46 +180,60 @@ layout_mode = 2
 icon_image = ExtResource("3_jqf55")
 icon_trim = ExtResource("4_byuxr")
 icon_scale = 0.7
+border_color = Color(0.34015143, 0.25129184, 0.031204946, 1)
 offset_border_size = 3.0
-offset_border_color = Color(0.13256624, 0.46680832, 0.82312787, 1)
+offset_border_color = Color(0.6750516, 0.5107788, 0.099476285, 1)
+trim_color = Color(0.5174476, 0.53085035, 0.50488687, 1)
 
 [node name="Button2" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=1403877392 instance=ExtResource("2_dhe1o")]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-icon_image = ExtResource("5_d050y")
-icon_trim = ExtResource("6_qgmx8")
+icon_image = ExtResource("7_vx7wu")
+icon_trim = ExtResource("8_r2vy3")
 icon_scale = 0.7
+border_color = Color(0.34015143, 0.25129184, 0.031204946, 1)
 offset_border_size = 3.0
-offset_border_color = Color(0.28482145, 0.53168553, 0.28954268, 1)
+offset_border_color = Color(0.6750516, 0.5107788, 0.099476285, 1)
+trim_color = Color(0.5174476, 0.53085035, 0.50488687, 1)
 
 [node name="Button3" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=1409810601 instance=ExtResource("2_dhe1o")]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-icon_image = ExtResource("7_vx7wu")
-icon_trim = ExtResource("8_r2vy3")
+icon_image = ExtResource("9_qhxh2")
+icon_trim = ExtResource("10_017wa")
+border_color = Color(0.34015143, 0.25129184, 0.031204946, 1)
 offset_border_size = 3.0
-offset_border_color = Color(0.71530914, 0.3546525, 0.030110309, 1)
+offset_border_color = Color(0.6750516, 0.5107788, 0.099476285, 1)
+trim_color = Color(0.5174476, 0.53085035, 0.50488687, 1)
 
 [node name="Button4" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=1209196552 instance=ExtResource("2_dhe1o")]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-icon_image = ExtResource("9_qhxh2")
-icon_trim = ExtResource("10_017wa")
+icon_image = ExtResource("21_vh35o")
+icon_trim = ExtResource("22_2jerp")
+border_color = Color(0.34015143, 0.25129184, 0.031204946, 1)
 offset_border_size = 3.0
-offset_border_color = Color(0.60617167, 0.14652899, 0.76218367, 1)
+offset_border_color = Color(0.6750516, 0.5107788, 0.099476285, 1)
+trim_color = Color(0.5174476, 0.53085035, 0.50488687, 1)
 
 [node name="Button5" parent="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons" unique_id=129578459 instance=ExtResource("2_dhe1o")]
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 icon_image = ExtResource("3_e707p")
 icon_trim = ExtResource("4_f1fl4")
 icon_scale = 0.75
+border_color = Color(0.34015143, 0.25129184, 0.031204946, 1)
 offset_border_size = 3.0
-offset_border_color = Color(0.8357183, 3.2247603e-06, 7.70092e-07, 1)
+offset_border_color = Color(0.6750516, 0.5107788, 0.099476285, 1)
+trim_color = Color(0.5174476, 0.53085035, 0.50488687, 1)
 
 [connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button5" to="." method="_on_modal_pressed"]
 [connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button4" to="." method="_on_modal_pressed"]
 [connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button3" to="." method="_on_modal_pressed"]
 [connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button2" to="." method="_on_modal_pressed"]
 [connection signal="pressed" from="UIFrame/TopUI/MarginContainer/BoxContainer/MenuButtons/Button" to="." method="_on_disconnect_pressed"]
+[connection signal="pressed" from="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons/Button" to="." method="_on_button_pressed"]
+[connection signal="pressed" from="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons/Button2" to="." method="_on_button_2_pressed"]
+[connection signal="pressed" from="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons/Button3" to="." method="_on_button_3_pressed"]
+[connection signal="pressed" from="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons/Button4" to="." method="_on_button_4_pressed"]
 [connection signal="pressed" from="UIFrame/BottomUI/MarginContainer/BoxContainer/BattleButtons/Button5" to="." method="_on_button_5_pressed"]
