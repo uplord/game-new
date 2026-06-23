@@ -275,6 +275,18 @@ func move_close_to_enemy(enemy: Node) -> void:
 	_move_close_to_enemy(enemy)
 
 
+func is_close_to_enemy(enemy: Node) -> bool:
+	if enemy == null or not is_instance_valid(enemy):
+		return false
+	if not (enemy is Node2D):
+		return false
+
+	var enemy_node := enemy as Node2D
+	var desired_distance := get_enemy_approach_distance(self, enemy_node)
+	var current_distance := global_position.distance_to(enemy_node.global_position)
+	return abs(current_distance - desired_distance) <= ENEMY_DISTANCE_TOLERANCE
+
+
 func _move_close_to_enemy(enemy: Node) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
@@ -396,13 +408,22 @@ func _update_movement_state(prev_pos: Vector2) -> void:
 
 	if actually_moving:
 		desired_pose = PlayerPose.RUNNING
-	elif attacking_pose_active:
+	elif _has_active_enemy_target() or attacking_pose_active:
 		desired_pose = PlayerPose.FIGHT
 	else:
 		desired_pose = PlayerPose.IDLE
 
 	if desired_pose != prev_pose:
 		set_pose(desired_pose)
+
+
+func _has_active_enemy_target() -> bool:
+	var ui := game.get_node_or_null("UI") if game != null else null
+	if ui == null:
+		return false
+
+	var enemy = ui.current_enemy_target
+	return enemy != null and is_instance_valid(enemy) and enemy.visible
 
 
 func set_pose(pose: PlayerPose) -> void:
@@ -437,6 +458,10 @@ func _update_camera_look_ahead() -> void:
 		return
 
 	var horizontal_amount := velocity.x / move_speed
+
+	if actually_moving and _has_active_enemy_target():
+		camera_controller.clear_enemy_focus()
+
 	camera_controller.set_look_ahead_direction(horizontal_amount)
 
 

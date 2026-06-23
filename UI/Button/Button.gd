@@ -39,7 +39,22 @@ enum TextAlignment {
 const BASE_VIEWPORT_SIZE := Vector2(1920.0, 1080.0)
 
 func _ready() -> void:
+	# Child controls must not steal touch/mouse events from the Button.
+	# This is especially important after mobile orientation changes, where
+	# Godot can re-pick the topmost Control under the finger.
+	_make_children_ignore_input()
 	_apply_button_style()
+	resized.connect(_on_resized)
+
+
+func _on_resized() -> void:
+	_update_icon_size()
+
+
+func _make_children_ignore_input() -> void:
+	for child in [button_icon, button_icon_trim, get_node_or_null("Panel")]:
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _apply_button_style() -> void:
