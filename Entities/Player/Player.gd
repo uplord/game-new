@@ -200,6 +200,7 @@ func _get_click_move_input() -> Vector2:
 
 		if approach_enemy != null and is_instance_valid(approach_enemy):
 			_face_global_position(approach_enemy.global_position)
+			_focus_camera_on_enemy(approach_enemy)
 
 		approach_enemy = null
 		_send_stop()
@@ -247,6 +248,9 @@ func _on_click() -> void:
 	mouse_mode = MouseMode.CLICK_MOVE
 	follow_moving = false
 
+	if camera_controller != null and camera_controller.has_method("reset_to_default_camera"):
+		camera_controller.reset_to_default_camera()
+
 	_send_move(new_target)
 
 
@@ -259,6 +263,9 @@ func _on_hold_start() -> void:
 
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
+
+	if camera_controller != null and camera_controller.has_method("reset_to_default_camera"):
+		camera_controller.reset_to_default_camera()
 
 
 func _on_hold_release() -> void:
@@ -293,6 +300,12 @@ func _move_close_to_enemy(enemy: Node) -> void:
 	if not (enemy is Node2D):
 		return
 
+	# Important:
+	# clicked_enemy.target() may enable enemy camera focus.
+	# Reset it here so every enemy approach starts from the normal camera mode.
+	if camera_controller != null and camera_controller.has_method("reset_to_default_camera"):
+		camera_controller.reset_to_default_camera()
+
 	approach_enemy = enemy as Node2D
 
 	var enemy_position := approach_enemy.global_position
@@ -306,6 +319,7 @@ func _move_close_to_enemy(enemy: Node) -> void:
 	if abs(current_distance - desired_distance) <= ENEMY_DISTANCE_TOLERANCE:
 		mouse_mode = MouseMode.NONE
 		click_target = Vector2.ZERO
+		_focus_camera_on_enemy(approach_enemy)
 		_send_stop()
 		return
 
@@ -379,6 +393,10 @@ func cancel_mouse_movement() -> void:
 	approach_enemy = null
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
+
+	if camera_controller != null and camera_controller.has_method("reset_to_default_camera"):
+		camera_controller.reset_to_default_camera()
+
 	_send_stop()
 
 
@@ -442,6 +460,14 @@ func _update_camera_look_ahead() -> void:
 		camera_controller = null
 		return
 
+	# If the player is running while an enemy is targeted,
+	# do not keep the enemy-focus camera offset active.
+	if actually_moving and _has_active_enemy_target():
+		if camera_controller.has_method("reset_to_default_camera"):
+			camera_controller.reset_to_default_camera()
+		elif camera_controller.has_method("clear_enemy_focus"):
+			camera_controller.clear_enemy_focus()
+
 	if mouse_mode == MouseMode.HOLD_FOLLOW and mouse_press_active:
 		var screen_dir := _get_screen_mouse_direction()
 
@@ -458,10 +484,6 @@ func _update_camera_look_ahead() -> void:
 		return
 
 	var horizontal_amount := velocity.x / move_speed
-
-	if actually_moving and _has_active_enemy_target():
-		camera_controller.clear_enemy_focus()
-
 	camera_controller.set_look_ahead_direction(horizontal_amount)
 
 
@@ -563,6 +585,22 @@ func _get_screen_mouse_direction() -> Vector2:
 	var player_screen_pos := get_global_transform_with_canvas().origin
 	var mouse_screen_pos := get_viewport().get_mouse_position()
 	return mouse_screen_pos - player_screen_pos
+
+
+func _focus_camera_on_enemy(enemy: Node2D) -> void:
+	if camera_controller == null or not is_instance_valid(camera_controller):
+		return
+
+	if enemy == null or not is_instance_valid(enemy):
+		return
+
+	var direction = sign(enemy.global_position.x - global_position.x)
+
+	if direction == 0:
+		direction = facing
+
+	if camera_controller.has_method("focus_enemy"):
+		camera_controller.focus_enemy(direction)
 
 
 func _send_position_if_needed() -> void:

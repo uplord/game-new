@@ -1,6 +1,6 @@
 extends Node
 
-@onready var map =  get_tree().root.get_node("Game/Map")
+@onready var map = get_tree().root.get_node("Game/Map")
 @onready var phantom_camera = $PhantomCamera2D
 @onready var camera_limits = map.get_node("Scene/Boundaries/CameraLimits")
 
@@ -23,6 +23,7 @@ var look_ahead_distance := 0.0
 
 var enemy_focus_active := false
 var enemy_focus_direction := 0.0
+
 
 func _ready():
 	get_window().size_changed.connect(_on_window_resized)
@@ -72,6 +73,12 @@ func set_look_ahead_direction(dir: float) -> void:
 	target_look_ahead = clamp(dir, -1.0, 1.0)
 
 
+func reset_to_default_camera() -> void:
+	enemy_focus_active = false
+	enemy_focus_direction = 0.0
+	target_look_ahead = 0.0
+
+
 func apply_orientation_zoom():
 	var safe_area: Rect2i = DisplayServer.get_display_safe_area()
 	var screen_size := get_viewport().get_visible_rect().size
@@ -96,9 +103,11 @@ func apply_camera_limits() -> void:
 	var shape = camera_limits.shape
 	if shape == null:
 		return
+
 	var rect := shape as RectangleShape2D
 	if rect == null:
 		return
+
 	var extents: Vector2 = rect.extents
 	var t: Transform2D = camera_limits.global_transform
 	
@@ -163,6 +172,7 @@ func apply_black_bars() -> void:
 func focus_enemy(direction: float) -> void:
 	enemy_focus_active = true
 	enemy_focus_direction = clamp(direction, -1.0, 1.0)
+
 
 func clear_enemy_focus() -> void:
 	enemy_focus_active = false

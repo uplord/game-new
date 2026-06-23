@@ -209,6 +209,21 @@ func _move_player_close_to_enemy(enemy: Node) -> void:
 	if player != null and is_instance_valid(player) and player.has_method("move_close_to_enemy"):
 		player.move_close_to_enemy(enemy)
 
+func _should_move_player_back_to_enemy(enemy: Node) -> bool:
+	if enemy == null or not is_instance_valid(enemy):
+		return false
+	if not enemy.visible:
+		return false
+
+	var player := SceneManager.player
+	if player == null or not is_instance_valid(player):
+		return false
+
+	if player.has_method("is_close_to_enemy"):
+		return not player.is_close_to_enemy(enemy)
+
+	return false
+
 
 func hide_enemy_card(force: bool = false) -> void:
 	if not force and is_player_in_battle():
@@ -376,8 +391,12 @@ func _on_battle_skill_pressed(skill_id: String) -> void:
 			if closest_enemy != null:
 				show_enemy_card(closest_enemy)
 				_move_player_close_to_enemy(closest_enemy)
-		if current_enemy_target == null or not is_instance_valid(current_enemy_target) or not current_enemy_target.visible:
-			return
+				return
+		return
+
+	if needs_enemy and _should_move_player_back_to_enemy(current_enemy_target):
+		_move_player_close_to_enemy(current_enemy_target)
+		return
 
 	var packet := {
 		"type": "c_use_skill",
