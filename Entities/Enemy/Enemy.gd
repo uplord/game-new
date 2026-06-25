@@ -111,6 +111,7 @@ func target() -> void:
 		return
 
 	targeted.emit(self)
+	_cancel_player_mouse_movement()
 	_show_enemy_card()
 	_move_player_close_to_self()
 
@@ -132,4 +133,6 @@ func _show_enemy_card() -> void:
 func _cancel_player_mouse_movement() -> void:
 	var player := SceneManager.player
 	if player != null and is_instance_valid(player) and player.has_method("cancel_mouse_movement"):
-		player.cancel_mouse_movement()
+		# Keep the current camera offset when targeting an enemy. The player should
+		# move to engagement range, but the camera should not jump/focus on target.
+		player.cancel_mouse_movement(false)

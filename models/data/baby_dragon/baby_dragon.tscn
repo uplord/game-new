@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://dhrlgwchjgnp3"]
+
+[ext_resource type="Script" uid="uid://crljuftd45a" path="res://models/data/baby_dragon/baby_dragon.gd" id="1_y21hy"]
+[ext_resource type="Shader" uid="uid://c461sxt8qv8sf" path="res://utilities/shaders/shadow.gdshader" id="2_cwvqf"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_target"]
+size = Vector2(120, 100)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pl6v2"]
+shader = ExtResource("2_cwvqf")
+shader_parameter/selected = false
+shader_parameter/edge_softness = 0.08
+
+[node name="BabyDragon" type="Node2D" unique_id=278953931]
+script = ExtResource("1_y21hy")
+
+[node name="TargetArea" type="Area2D" parent="." unique_id=1410456188]
+position = Vector2(0, -40)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TargetArea" unique_id=1220542850]
+shape = SubResource("RectangleShape2D_target")
+
+[node name="Shadow" type="ColorRect" parent="." unique_id=627547793]
+material = SubResource("ShaderMaterial_pl6v2")
+offset_left = -70.0
+offset_top = -24.0
+offset_right = 70.0
+offset_bottom = 24.0
+mouse_filter = 2
+
+[node name="Body" type="Node2D" parent="." unique_id=2077736839]
+
+[node name="Chest" type="Node2D" parent="Body" unique_id=2020028435]
+scale = Vector2(0.25, 0.25)
+
+[node name="Base" type="Sprite2D" parent="Body/Chest" unique_id=874591384]
+position = Vector2(0, -112)
+offset = Vector2(0, -690)

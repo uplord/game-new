@@ -1,0 +1,137 @@
+[gd_scene format=3 uid="uid://dk6o4tvxb5ueb"]
+
+[ext_resource type="Script" uid="uid://bbu6plqtlakc4" path="res://ui/main_menu/main_menu.gd" id="1_6ba75"]
+[ext_resource type="Texture2D" uid="uid://beeglaekim12j" path="res://ui/main_menu/slime.png" id="2_8x0bb"]
+[ext_resource type="PackedScene" uid="uid://0wn6iixn2ehd" path="res://ui/button/button.tscn" id="2_kt4fb"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_omy8q"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_i5wg5"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3c04x"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_joh67"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0.6666667, 0.6666667, 0.6666667, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_u184e"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="MainMenu" type="CanvasLayer" unique_id=694641312]
+script = ExtResource("1_6ba75")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1786797855]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0627451, 0.39215687, 0.79607844, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="ColorRect" unique_id=1845525275]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ColorRect/CenterContainer" unique_id=1225098758]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1885099999]
+custom_minimum_size = Vector2(200, 122.9)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("2_8x0bb")
+expand_mode = 1
+
+[node name="Title" type="Label" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1994633784]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Uplord Adventure"
+horizontal_alignment = 1
+
+[node name="Button" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1306766417 instance=ExtResource("2_kt4fb")]
+custom_minimum_size = Vector2(40, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_omy8q")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_i5wg5")
+theme_override_styles/hover = SubResource("StyleBoxFlat_3c04x")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_joh67")
+theme_override_styles/focus = SubResource("StyleBoxFlat_u184e")
+text = "Connect"
+padding_x = 24.0
+border_color = Color(0, 0, 0, 0)

@@ -248,7 +248,6 @@ func _on_click() -> void:
 	if clicked_enemy != null:
 		if clicked_enemy.has_method("target"):
 			clicked_enemy.target()
-			move_close_to_enemy(clicked_enemy)
 		else:
 			_clear_enemy_target()
 		return
@@ -324,28 +323,16 @@ func _move_close_to_enemy(enemy: Node) -> void:
 	if not (enemy is Node2D):
 		return
 
-	# Important:
-	# clicked_enemy.target() may enable enemy camera focus.
-	# Reset it here so every enemy approach starts from the normal camera mode.
-	if camera_controller != null and camera_controller.has_method("reset_to_default_camera"):
-		camera_controller.reset_to_default_camera()
-
+	# Do not reset or focus the camera during enemy targeting.
+	# Targeting should only move the player into engagement range.
 	approach_enemy = enemy as Node2D
 
 	var enemy_position := approach_enemy.global_position
 	var desired_distance := get_enemy_approach_distance(self, approach_enemy)
 
-	var offset_from_enemy := global_position - enemy_position
-	var current_distance := offset_from_enemy.length()
-
 	_face_global_position(enemy_position)
 
-	var direction_away_from_enemy := Vector2.ZERO
-
-	if current_distance > 0.01:
-		direction_away_from_enemy = offset_from_enemy.normalized()
-	else:
-		direction_away_from_enemy = Vector2.LEFT if facing > 0 else Vector2.RIGHT
+	var direction_away_from_enemy := _get_horizontal_enemy_approach_direction(enemy_position)
 
 	# If the player is already at a good engagement distance, start/hold the
 	# target normally. If they are too close, first step away to the preferred
@@ -361,7 +348,7 @@ func _move_close_to_enemy(enemy: Node) -> void:
 
 	enemy_approach_tried_alternate = false
 	enemy_approach_direction_away = direction_away_from_enemy
-	_set_enemy_approach_target(enemy_position + enemy_approach_direction_away * desired_distance)
+	_set_enemy_approach_target(_get_enemy_side_target(enemy_position, enemy_approach_direction_away, desired_distance))
 
 
 func _is_too_close_to_enemy(enemy: Node) -> bool:
@@ -391,16 +378,32 @@ func _try_enemy_alternate_position() -> bool:
 	# player slid around collision the "opposite" side could be wrong.
 	var direction_away_from_enemy := enemy_approach_direction_away
 	if direction_away_from_enemy == Vector2.ZERO:
-		var offset_from_enemy := global_position - enemy_position
-		var current_distance := offset_from_enemy.length()
-		if current_distance > 0.01:
-			direction_away_from_enemy = offset_from_enemy.normalized()
-		else:
-			direction_away_from_enemy = Vector2.LEFT if facing > 0 else Vector2.RIGHT
+		direction_away_from_enemy = _get_horizontal_enemy_approach_direction(enemy_position)
 
 	enemy_approach_tried_alternate = true
-	_set_enemy_approach_target(enemy_position - direction_away_from_enemy * desired_distance)
+	_set_enemy_approach_target(_get_enemy_side_target(enemy_position, -direction_away_from_enemy, desired_distance))
 	return true
+
+
+func _get_horizontal_enemy_approach_direction(enemy_position: Vector2) -> Vector2:
+	var x_direction : float = sign(global_position.x - enemy_position.x)
+
+	if x_direction == 0:
+		x_direction = -1 if facing > 0 else 1
+
+	return Vector2(x_direction, 0.0)
+
+
+func _get_enemy_side_target(enemy_position: Vector2, direction_away_from_enemy: Vector2, desired_distance: float) -> Vector2:
+	var x_direction : float = sign(direction_away_from_enemy.x)
+
+	if x_direction == 0:
+		x_direction = -1 if facing > 0 else 1
+
+	return Vector2(
+		enemy_position.x + x_direction * desired_distance,
+		enemy_position.y
+	)
 
 
 func _set_enemy_approach_target(target_global_position: Vector2) -> void:
@@ -475,7 +478,7 @@ func _clear_enemy_target() -> void:
 		ui.hide_enemy_card()
 
 
-func cancel_mouse_movement() -> void:
+func cancel_mouse_movement(reset_camera: bool = true) -> void:
 	mouse_press_active = false
 	hold_started = false
 	mouse_mode = MouseMode.NONE
@@ -487,7 +490,7 @@ func cancel_mouse_movement() -> void:
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
 
-	if camera_controller != null and camera_controller.has_method("reset_to_default_camera"):
+	if reset_camera and camera_controller != null and camera_controller.has_method("reset_to_default_camera"):
 		camera_controller.reset_to_default_camera()
 
 	_send_stop()
@@ -554,6 +557,12 @@ func set_pose(pose: PlayerPose) -> void:
 func _update_camera_look_ahead() -> void:
 	if camera_controller == null or not is_instance_valid(camera_controller):
 		camera_controller = null
+		return
+
+	# While auto-moving into enemy engagement range, keep the camera where it is.
+	# The enemy focus is only applied once the player reaches the chosen side of
+	# the enemy, so the view does not jump ahead before the player arrives.
+	if approach_enemy != null and is_instance_valid(approach_enemy):
 		return
 
 	# If the player is running while an enemy is targeted,
@@ -712,18 +721,10 @@ func _get_screen_mouse_direction() -> Vector2:
 	return mouse_screen_pos - player_screen_pos
 
 
-func _focus_camera_on_enemy(enemy: Node2D) -> void:
-	if camera_controller == null or not is_instance_valid(camera_controller):
-		return
-
-	if enemy == null or not is_instance_valid(enemy):
-		return
-
-	if camera_controller.has_method("focus_enemy_for_positions"):
-		camera_controller.focus_enemy_for_positions(
-			global_position.x,
-			enemy.global_position.x
-		)
+func _focus_camera_on_enemy(_enemy: Node2D) -> void:
+	# Intentionally disabled for enemy targeting. The player can move next to the
+	# enemy, but targeting must not shift/focus the camera toward that enemy.
+	return
 
 
 func _send_position_if_needed() -> void:

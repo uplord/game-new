@@ -185,17 +185,9 @@ func show_enemy_card(enemy: Node) -> void:
 	current_enemy_target = enemy
 	print("TARGET: ", enemy)
 	
-	var player := SceneManager.player
-
-	if player != null and enemy != null:
-		var camera_manager := get_tree().root.get_node("Game/CameraManager")
-
-		if camera_manager != null:
-			if camera_manager.has_method("focus_enemy_for_positions"):
-				camera_manager.focus_enemy_for_positions(player.global_position.x, enemy.global_position.x)
-			else:
-				var dir = sign(enemy.global_position.x - player.global_position.x)
-				camera_manager.focus_enemy(dir)
+	# Camera positioning for enemy targeting is handled by Player.gd.
+	# Do not focus the camera here: this runs before the player has chosen the
+	# final engagement side, so it can fight the approach camera lock.
 
 	if current_enemy_target != null and current_enemy_target.has_method("set_selected"):
 		current_enemy_target.set_selected(true)
@@ -243,7 +235,7 @@ func hide_enemy_card(force: bool = false) -> void:
 
 	_update_effect_labels()
 	
-	var camera_manager := get_tree().root.get_node("Game/CameraManager")
+	camera_manager = get_tree().root.get_node("Game/CameraManager")
 
 	if camera_manager != null:
 		camera_manager.clear_enemy_focus()
@@ -392,12 +384,14 @@ func _on_battle_skill_pressed(skill_id: String) -> void:
 			if closest_enemy != null:
 				show_enemy_card(closest_enemy)
 				_move_player_close_to_enemy(closest_enemy)
+				# Auto-selecting a target from a battle button should move the player
+				# into engagement range, but Player.gd keeps the camera from focusing.
+			else:
 				return
-		return
+		else:
+			return
 
-	if needs_enemy and _should_move_player_back_to_enemy(current_enemy_target):
-		_move_player_close_to_enemy(current_enemy_target)
-		return
+	# Battle UI buttons can select/approach the target, but camera focus remains disabled.
 
 	var packet := {
 		"type": "c_use_skill",

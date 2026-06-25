@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://b5owij6a532fg"]
 
-[ext_resource type="Script" uid="uid://dglkbqk7fix3k" path="res://Entities/Objects/Object.gd" id="1_0borc"]
-[ext_resource type="Texture2D" uid="uid://bmwl7mr5fsh44" path="res://Entities/Objects/Trees/Spruce/Art/tree.png" id="2_lpyto"]
+[ext_resource type="Script" uid="uid://dglkbqk7fix3k" path="res://entities/objects/object.gd" id="1_0borc"]
+[ext_resource type="Texture2D" uid="uid://bmwl7mr5fsh44" path="res://entities/objects/trees/spruce/art/tree.png" id="2_lpyto"]
 
 [node name="Tree" type="Node2D" unique_id=1125370262]
 script = ExtResource("1_0borc")

@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://dp7ur3ho0fkal"]
 
-[ext_resource type="Script" uid="uid://cndridmxt728g" path="res://Game/Game.gd" id="1_hqwdr"]
-[ext_resource type="PackedScene" uid="uid://cb07e8snk8lhj" path="res://UI/UI.tscn" id="2_vrr3t"]
-[ext_resource type="PackedScene" uid="uid://dk6o4tvxb5ueb" path="res://UI/MainMenu/MainMenu.tscn" id="3_p1vxh"]
+[ext_resource type="Script" uid="uid://cndridmxt728g" path="res://game/game.gd" id="1_hqwdr"]
+[ext_resource type="PackedScene" uid="uid://cb07e8snk8lhj" path="res://ui/ui.tscn" id="2_vrr3t"]
+[ext_resource type="PackedScene" uid="uid://dk6o4tvxb5ueb" path="res://ui/main_menu/main_menu.tscn" id="3_p1vxh"]
 
 [node name="Game" type="Node2D" unique_id=247508025]
 script = ExtResource("1_hqwdr")

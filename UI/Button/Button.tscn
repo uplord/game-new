@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://0wn6iixn2ehd"]
 
-[ext_resource type="Script" uid="uid://cyyotfyf0vfft" path="res://UI/Button/Button.gd" id="1_xg2gh"]
+[ext_resource type="Script" uid="uid://cyyotfyf0vfft" path="res://ui/button/button.gd" id="1_xg2gh"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xg2gh"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o8ei0"]
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
@@ -18,7 +18,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_83xgs"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1imm2"]
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
@@ -34,7 +34,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_45is7"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_glnhe"]
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
@@ -50,7 +50,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_42at2"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8vxab"]
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
@@ -66,7 +66,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_luhso"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_huj2i"]
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
@@ -82,7 +82,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wj3dd"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2jwr8"]
 bg_color = Color(0.6, 0.6, 0.6, 0)
 border_color = Color(1, 1, 1, 0)
 corner_radius_top_left = 7
@@ -96,11 +96,11 @@ custom_minimum_size = Vector2(40, 40)
 size_flags_vertical = 8
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_xg2gh")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_83xgs")
-theme_override_styles/hover = SubResource("StyleBoxFlat_45is7")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_42at2")
-theme_override_styles/focus = SubResource("StyleBoxFlat_luhso")
+theme_override_styles/normal = SubResource("StyleBoxFlat_o8ei0")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_1imm2")
+theme_override_styles/hover = SubResource("StyleBoxFlat_glnhe")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_8vxab")
+theme_override_styles/focus = SubResource("StyleBoxFlat_huj2i")
 script = ExtResource("1_xg2gh")
 
 [node name="Panel" type="Panel" parent="." unique_id=11308724]
@@ -115,7 +115,7 @@ offset_bottom = -1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_wj3dd")
+theme_override_styles/panel = SubResource("StyleBoxFlat_2jwr8")
 
 [node name="Icon" type="TextureRect" parent="." unique_id=1391114924]
 layout_mode = 1

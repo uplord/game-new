@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://0kf0lqvcb382"]
 
-[ext_resource type="Script" uid="uid://bgl7qj8webew0" path="res://UI/Modal/Modal.gd" id="1_it6kh"]
-[ext_resource type="PackedScene" uid="uid://0wn6iixn2ehd" path="res://UI/Button/Button.tscn" id="2_2hhmj"]
-[ext_resource type="Texture2D" uid="uid://bho4gdxg322kx" path="res://UI/Button/Art/Icons/Close_Icon.png" id="3_754qu"]
-[ext_resource type="Texture2D" uid="uid://d147x3ytu0q61" path="res://UI/Button/Art/Icons/Close_Trim.png" id="4_5al0b"]
+[ext_resource type="Script" uid="uid://bgl7qj8webew0" path="res://ui/modal/modal.gd" id="1_it6kh"]
+[ext_resource type="PackedScene" uid="uid://0wn6iixn2ehd" path="res://ui/button/button.tscn" id="2_2hhmj"]
+[ext_resource type="Texture2D" uid="uid://bho4gdxg322kx" path="res://ui/button/art/Icons/Close_Icon.png" id="3_754qu"]
+[ext_resource type="Texture2D" uid="uid://d147x3ytu0q61" path="res://ui/button/art/Icons/Close_Trim.png" id="4_5al0b"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o52hm"]
 bg_color = Color(0.2, 0.2, 0.2, 1)

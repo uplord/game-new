@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="SkillResource" format=3 uid="uid://cxihia6rldiu1"]
 
-[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://Resources/Skills/StatusEffectResource.gd" id="1_effect"]
-[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://Resources/Skills/SkillResource.gd" id="2_skill"]
-[ext_resource type="Resource" uid="uid://cf1mjaq2i8k67" path="res://Resources/Skills/Effects/Defence.tres" id="3_defence"]
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://resources/skills/status_effect_resource.gd" id="1_effect"]
+[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://resources/skills/skill_resource.gd" id="2_skill"]
+[ext_resource type="Resource" uid="uid://cf1mjaq2i8k67" path="res://resources/skills/effects/defence.tres" id="3_defence"]
 
 [resource]
 script = ExtResource("2_skill")

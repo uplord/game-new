@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillResource" format=3 uid="uid://dpoffa48567dt"]
+
+[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://resources/skills/skill_resource.gd" id="1_chywm"]
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://resources/skills/status_effect_resource.gd" id="1_fpfqw"]
+
+[resource]
+script = ExtResource("1_chywm")
+skill_id = "super_attack"
+skill_name = "Super Attack"
+damage = 100
+mp_cost = 50
+cooldown = 12.0
+target_closest_enemy = true

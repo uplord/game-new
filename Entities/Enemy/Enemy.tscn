@@ -1,11 +1,12 @@
 [gd_scene format=3 uid="uid://ckrk0wlaltbnp"]
 
-[ext_resource type="Script" uid="uid://bssk5jgw22rnd" path="res://Entities/Enemy/Enemy.gd" id="1_salu8"]
-[ext_resource type="PackedScene" uid="uid://cdthxq6eebin7" path="res://Entities/Models/Model.tscn" id="2_7s3rp"]
-[ext_resource type="Script" uid="uid://6qhmyfdfow1m" path="res://Entities/Models/Data/BabySlime/BabySlimeModelData.gd" id="3_bgbm4"]
+[ext_resource type="Script" uid="uid://bssk5jgw22rnd" path="res://entities/enemy/enemy.gd" id="1_salu8"]
+[ext_resource type="PackedScene" uid="uid://cdthxq6eebin7" path="res://models/model.tscn" id="2_7s3rp"]
+[ext_resource type="Script" uid="uid://6qhmyfdfow1m" path="res://models/data/baby_slime/baby_slime_model_data.gd" id="3_bgbm4"]
 
 [sub_resource type="Resource" id="Resource_3l5gm"]
 script = ExtResource("3_bgbm4")
+body_type = "Green"
 metadata/_custom_type_script = "uid://6qhmyfdfow1m"
 
 [node name="Enemy" type="Node2D" unique_id=10092746]
@@ -17,4 +18,5 @@ mp = 0.0
 [node name="Base" type="Node2D" parent="." unique_id=1167952262]
 
 [node name="Model" parent="Base" unique_id=1474508977 instance=ExtResource("2_7s3rp")]
+z_index = 1000
 model_data = SubResource("Resource_3l5gm")

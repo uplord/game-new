@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="SkillResource" format=3 uid="uid://pmpn2ahxmqhb"]
 
-[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://Resources/Skills/StatusEffectResource.gd" id="1_effect"]
-[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://Resources/Skills/SkillResource.gd" id="2_skill"]
-[ext_resource type="Resource" uid="uid://c6knbk04jid4o" path="res://Resources/Skills/Effects/Healing.tres" id="3_healing"]
-[ext_resource type="Resource" uid="uid://d05av66s4h7n2" path="res://Resources/Skills/Effects/Clense.tres" id="4_cleanse"]
+[ext_resource type="Script" uid="uid://d001uy2uk407s" path="res://resources/skills/status_effect_resource.gd" id="1_effect"]
+[ext_resource type="Script" uid="uid://cnbc0esotqy2f" path="res://resources/skills/skill_resource.gd" id="2_skill"]
+[ext_resource type="Resource" uid="uid://c6knbk04jid4o" path="res://resources/skills/effects/healing.tres" id="3_healing"]
+[ext_resource type="Resource" uid="uid://d05av66s4h7n2" path="res://resources/skills/effects/clense.tres" id="4_cleanse"]
 
 [resource]
 script = ExtResource("2_skill")

@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://cn6vdwrcudxqa"]
+
+[ext_resource type="Script" uid="uid://863tf8l6diu" path="res://game/camera_manager/camera_manager.gd" id="1_irxgs"]
+[ext_resource type="Script" uid="uid://bd046eokvcnu2" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="2_m4pni"]
+[ext_resource type="Script" uid="uid://bhexx6mj1xv3q" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_2d.gd" id="3_j8e3t"]
+[ext_resource type="Script" uid="uid://8umksf8e80fw" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="4_3ohph"]
+
+[sub_resource type="Resource" id="Resource_pvv6t"]
+script = ExtResource("4_3ohph")
+
+[node name="CameraManager" type="Node2D" unique_id=1447906387]
+script = ExtResource("1_irxgs")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1192704083]
+top_level = true
+editor_draw_limits = true
+
+[node name="PhantomCameraHost" type="Node" parent="Camera2D" unique_id=1860066025]
+process_priority = 300
+process_physics_priority = 300
+script = ExtResource("2_m4pni")
+metadata/_custom_type_script = "uid://bd046eokvcnu2"
+
+[node name="PhantomCamera2D" type="Node2D" parent="." unique_id=818117892]
+top_level = true
+script = ExtResource("3_j8e3t")
+follow_mode = 2
+tween_resource = SubResource("Resource_pvv6t")
+tween_on_load = false
+follow_axis_lock = 2
+draw_limits = true
+metadata/_custom_type_script = "uid://bhexx6mj1xv3q"
+
+[node name="Cover" type="CanvasLayer" parent="." unique_id=2117134120]
+
+[node name="BarLeft" type="ColorRect" parent="Cover" unique_id=24916831]
+visible = false
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0, 0, 0, 1)
+
+[node name="BarRight" type="ColorRect" parent="Cover" unique_id=1495806120]
+visible = false
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0, 0, 0, 1)
+
+[node name="BarTop" type="ColorRect" parent="Cover" unique_id=1513187197]
+visible = false
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0, 0, 0, 1)
+
+[node name="BarBottom" type="ColorRect" parent="Cover" unique_id=1496645376]
+visible = false
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0, 0, 0, 1)

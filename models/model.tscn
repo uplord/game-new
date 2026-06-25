@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://cdthxq6eebin7"]
+
+[ext_resource type="Script" uid="uid://b7fie4xory1at" path="res://models/model.gd" id="1_812pd"]
+[ext_resource type="Script" uid="uid://djyig84hx7yto" path="res://models/model_data.gd" id="2_aghui"]
+
+[sub_resource type="Resource" id="Resource_bwmvd"]
+script = ExtResource("2_aghui")
+metadata/_custom_type_script = "uid://djyig84hx7yto"
+
+[node name="Model" type="Node2D" unique_id=1474508977]
+script = ExtResource("1_812pd")
+model_data = SubResource("Resource_bwmvd")
