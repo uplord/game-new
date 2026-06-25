@@ -14,6 +14,7 @@ size = Vector2(1307, 735)
 
 [sub_resource type="Resource" id="Resource_rgito"]
 script = ExtResource("5_8obig")
+facing_direction = 1
 metadata/_custom_type_script = "uid://6qhmyfdfow1m"
 
 [sub_resource type="Resource" id="Resource_8obig"]
@@ -35,7 +36,7 @@ texture = ExtResource("1_rr3rg")
 [node name="Boundary" type="StaticBody2D" parent="Boundaries" unique_id=1359634240]
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Boundaries/Boundary" unique_id=669647876]
-polygon = PackedVector2Array(-57, 368, 649, 363, 648, -274, 430, -240, 193, -184, 19, -182, 11, -91, -109, -77, -351, -25, -539, 64, -653, 67, -653, 365, -57, 368, -61, 758, -831, 778, -841, -673, 886, -662, 887, 780, -61, 766)
+polygon = PackedVector2Array(-57, 368, 649, 363, 649, -273, 430, -240, 190, -193, 18, -193, -63, -116, -228, -56, -363, -40, -480, -19, -548, 29, -653, 67, -653, 365, -57, 368, -61, 758, -831, 778, -841, -673, 886, -662, 887, 780, -61, 766)
 
 [node name="CameraLimits" type="CollisionShape2D" parent="Boundaries" unique_id=869885515]
 shape = SubResource("RectangleShape2D_rr3rg")
@@ -54,33 +55,33 @@ position = Vector2(-6, 198)
 [node name="Objects" type="Node2D" parent="." unique_id=532033821]
 
 [node name="Rock" parent="Objects" unique_id=650915074 instance=ExtResource("2_7kbsl")]
-position = Vector2(-83, -89)
+position = Vector2(-103, -136)
 
 [node name="Rock3" parent="Objects" unique_id=1936592211 instance=ExtResource("2_7kbsl")]
-position = Vector2(-209, -70)
+position = Vector2(-235, -78)
 
 [node name="Rock2" parent="Objects" unique_id=1357174315 instance=ExtResource("3_fmqbo")]
-position = Vector2(-388, -27)
+position = Vector2(-397, -54)
 
 [node name="Tree" parent="Objects" unique_id=1125370262 instance=ExtResource("10_8ivrg")]
-position = Vector2(-548, 7)
+position = Vector2(-625, -6)
 
 [node name="Enemies" type="Node2D" parent="." unique_id=1861785255]
 
 [node name="Enemy" parent="Enemies" unique_id=167616825 instance=ExtResource("2_wybr7")]
-position = Vector2(-257, 35)
+position = Vector2(487, 135)
 model_data = SubResource("Resource_rgito")
 enemy_name = "Slime baby"
 
 [node name="Enemy2" parent="Enemies" unique_id=10092746 instance=ExtResource("2_wybr7")]
-position = Vector2(322, -123)
+position = Vector2(339, -19)
 model_data = SubResource("Resource_8obig")
 enemy_name = "Baby dragon"
 max_hp = 250.0
 hp = 250.0
 
 [node name="Enemy3" parent="Enemies" unique_id=1732991765 instance=ExtResource("2_wybr7")]
-position = Vector2(-423, 239)
+position = Vector2(-446, 262)
 model_data = SubResource("Resource_f1vb1")
 animation_tree_enabled = true
 starting_pose = 1

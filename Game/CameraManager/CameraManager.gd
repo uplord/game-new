@@ -9,7 +9,10 @@ extends Node
 @onready var bar_top: ColorRect = $Cover/BarTop
 @onready var bar_bottom: ColorRect = $Cover/BarBottom
 
-@export var look_ahead_speed := 1.0
+@export var look_ahead_speed := 4.0
+@export var enemy_focus_speed := 7.0
+@export var enemy_focus_center_distance := 120.0
+@export_range(0.0, 1.0, 0.01) var enemy_focus_center_screen_ratio := 0.20
 
 const MAX_LANDSCAPE_ASPECT := 16.0 / 9.0
 const BASE_SIZE := Vector2(735, 735)
@@ -24,6 +27,8 @@ var look_ahead_distance := 0.0
 var enemy_focus_active := false
 var enemy_focus_direction := 0.0
 
+var current_game_offset := 0.0
+
 
 func _ready():
 	get_window().size_changed.connect(_on_window_resized)
@@ -36,15 +41,23 @@ func _process(delta):
 	if enemy_focus_active:
 		desired_look_ahead = enemy_focus_direction
 
+	var active_speed := enemy_focus_speed if enemy_focus_active else look_ahead_speed
+
 	current_look_ahead = lerp(
 		current_look_ahead,
 		desired_look_ahead,
+		1.0 - exp(-active_speed * delta)
+	)
+	
+	current_game_offset = lerp(
+		float(current_game_offset),
+		float(game_offset),
 		1.0 - exp(-look_ahead_speed * delta)
 	)
 
 	var new_offset := Vector2(
 		current_look_ahead * look_ahead_distance,
-		-game_offset
+		-current_game_offset
 	)
 
 	if phantom_camera.follow_offset.distance_squared_to(new_offset) > 0.01:
@@ -83,7 +96,7 @@ func apply_orientation_zoom():
 	var safe_area: Rect2i = DisplayServer.get_display_safe_area()
 	var screen_size := get_viewport().get_visible_rect().size
 	
-	look_ahead_distance = (screen_size.x * 0.5) - 32.0
+	look_ahead_distance = clamp((screen_size.x * 0.5) - 96.0, 80.0, 280.0)
 
 	if screen_size.y > screen_size.x:
 		var top_safe := float(safe_area.position.y / DisplayServer.screen_get_scale())
@@ -95,9 +108,8 @@ func apply_orientation_zoom():
 	else:
 		map_scale = screen_size.y / BASE_SIZE.y
 		game_offset = 0.0
-
+	print("map_scale: ", map_scale)
 	map.scale = Vector2.ONE * map_scale
-
 
 func apply_camera_limits() -> void:
 	var shape = camera_limits.shape
@@ -173,6 +185,36 @@ func focus_enemy(direction: float) -> void:
 	enemy_focus_active = true
 	enemy_focus_direction = clamp(direction, -1.0, 1.0)
 
+
+func focus_enemy_for_positions(player_x: float, enemy_x: float) -> void:
+	var x_distance := enemy_x - player_x
+	var center_distance := _get_enemy_focus_center_distance()
+
+	# If the target is close enough on the X axis, keep the player centered.
+	# If it is far away, offset the camera so the player sits on the opposite edge.
+	if abs(x_distance) <= center_distance:
+		focus_enemy(0.0)
+	else:
+		var max_focus_distance := center_distance * 3.0
+		var focus_amount = clamp(x_distance / max_focus_distance, -1.0, 1.0)
+		focus_enemy(focus_amount)
+
+
+func _get_enemy_focus_center_distance() -> float:
+	var screen_size := get_viewport().get_visible_rect().size
+	var playable_width := screen_size.x
+
+	if not is_mobile():
+		var aspect := screen_size.x / screen_size.y
+		if aspect > MAX_LANDSCAPE_ASPECT:
+			playable_width = screen_size.y * MAX_LANDSCAPE_ASPECT
+
+	var playable_world_width = playable_width / max(map_scale, 0.001)
+
+	return max(
+		enemy_focus_center_distance,
+		playable_world_width * enemy_focus_center_screen_ratio
+	)
 
 func clear_enemy_focus() -> void:
 	enemy_focus_active = false

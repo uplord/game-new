@@ -1,7 +1,9 @@
+@tool
 extends Button
 
 @onready var button_icon: TextureRect = $Icon
 @onready var button_icon_trim: TextureRect = $Trim
+@onready var countdown_label: Label = get_node_or_null("CountdownLabel") as Label
 
 @export var icon_image: Texture2D
 @export var icon_trim: Texture2D
@@ -30,11 +32,17 @@ enum TextAlignment {
 @export var bg_color_pressed: Color = Color("#222222")
 @export var bg_color_disabled: Color = Color("#aaaaaa")
 @export var font_color: Color = Color("#ffffff")
+@export var font_outline_color: Color = Color("#222222")
+@export var font_outline_size: float = 6.0
 
 @export var offset_border_size: float = 0.0
 @export var offset_border_color: Color = Color("#ffffff00")
 
 @export var trim_color: Color = Color.TRANSPARENT
+@export_range(0.0, 1.0) var disabled_icon_alpha: float = 0.45
+
+var _countdown_text := ""
+var _last_disabled := false
 
 const BASE_VIEWPORT_SIZE := Vector2(1920.0, 1080.0)
 
@@ -44,12 +52,67 @@ func _ready() -> void:
 	# Godot can re-pick the topmost Control under the finger.
 	_make_children_ignore_input()
 	_apply_button_style()
+	_setup_countdown_label()
+	set_process(true)
 	resized.connect(_on_resized)
+
+
+func _process(_delta: float) -> void:
+	if _last_disabled != disabled:
+		_refresh_disabled_visuals()
 
 
 func _on_resized() -> void:
 	_update_icon_size()
 
+
+
+func _setup_countdown_label() -> void:
+	if countdown_label == null:
+		return
+
+	countdown_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	countdown_label.anchor_left = 0.0
+	countdown_label.anchor_top = 0.0
+	countdown_label.anchor_right = 1.0
+	countdown_label.anchor_bottom = 1.0
+	countdown_label.offset_left = 0.0
+	countdown_label.offset_top = 0.0
+	countdown_label.offset_right = 0.0
+	countdown_label.offset_bottom = 0.0
+	countdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	countdown_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	countdown_label.add_theme_color_override("font_color", font_color)
+	countdown_label.add_theme_color_override("font_outline_color", font_outline_color)
+	countdown_label.add_theme_font_size_override("font_size", int(max(font_size, 18.0)))
+	countdown_label.add_theme_constant_override("outline_size", int(font_outline_size))
+	countdown_label.visible = false
+
+
+func set_countdown_text(value: String) -> void:
+	_countdown_text = value
+	if countdown_label != null:
+		countdown_label.text = _countdown_text
+		countdown_label.visible = _countdown_text != ""
+	_refresh_disabled_visuals()
+
+
+func _refresh_disabled_visuals() -> void:
+	_last_disabled = disabled
+	var alpha := disabled_icon_alpha if disabled else 1.0
+
+	if button_icon != null:
+		var icon_modulate := button_icon.modulate
+		icon_modulate.a = alpha
+		button_icon.modulate = icon_modulate
+
+	if button_icon_trim != null:
+		var trim_modulate := trim_color if trim_color != Color.TRANSPARENT else offset_border_color
+		trim_modulate.a *= alpha
+		button_icon_trim.modulate = trim_modulate
+
+	if countdown_label != null:
+		countdown_label.visible = _countdown_text != ""
 
 func _make_children_ignore_input() -> void:
 	for child in [button_icon, button_icon_trim, get_node_or_null("Panel")]:
@@ -66,7 +129,6 @@ func _apply_button_style() -> void:
 	add_theme_font_size_override("font_size", int(font_size))
 
 	_apply_text_alignment()
-
 	_apply_button_state_styles()
 	_apply_offset_panel_style()
 	_update_icon_size()
@@ -183,6 +245,8 @@ func _update_icon_size() -> void:
 			button_icon_trim.modulate = trim_color
 		else:
 			button_icon_trim.modulate = offset_border_color
+
+	_refresh_disabled_visuals()
 
 
 func _update_texture_rect(texture_rect: TextureRect, texture: Texture2D) -> void:

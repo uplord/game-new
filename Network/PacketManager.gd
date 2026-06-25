@@ -876,6 +876,10 @@ func _apply_enemy_action(attacking_client_id: int, enemy_id: String) -> bool:
 
 
 func _apply_enemy_action_state(enemy_key: String, enemy: Dictionary) -> bool:
+	if bool(enemy.get("defeated", false)) or float(enemy.get("hp", ENEMY_MAX_HP)) <= 0.0:
+		_mark_enemy_defeated(enemy_key, enemy)
+		return false
+
 	if _now() < float(enemy.get("next_action_at", 0.0)):
 		battle_enemies[enemy_key] = enemy
 		return false
@@ -925,9 +929,15 @@ func _apply_enemy_action_state(enemy_key: String, enemy: Dictionary) -> bool:
 	var player = battle_players.get(target_client_id, BattleCalculator.create_player_battle_state())
 	var skill: Dictionary = chosen_skill
 
+	if bool(enemy.get("defeated", false)) or float(enemy.get("hp", ENEMY_MAX_HP)) <= 0.0:
+		_mark_enemy_defeated(enemy_key, enemy)
+		return false
+
 	var damage := BattleCalculator.calculate_enemy_damage(enemy, player, skill)
 	player.hp = max(0.0, float(player.get("hp", PLAYER_MAX_HP)) - damage)
-	player = BattleCalculator.apply_effects(player, skill.get("effects", []), str(enemy.get("id", "")))
+
+	if float(player.get("hp", PLAYER_MAX_HP)) > 0.0:
+		player = BattleCalculator.apply_effects(player, skill.get("effects", []), str(enemy.get("id", "")))
 
 	enemy_cooldowns[chosen_skill_id] = _now() + BattleCalculator.get_skill_cooldown(enemy, skill)
 	enemy.cooldowns = enemy_cooldowns

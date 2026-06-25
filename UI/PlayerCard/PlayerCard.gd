@@ -10,11 +10,9 @@ var mp_value_label: Label = null
 
 func _ready() -> void:
 	get_viewport().size_changed.connect(_on_resized)
-#
-	_style_bar(hp_bar, Color(0.85, 0.05, 0.05), Color("ffffff1a"))
-	_style_bar(mp_bar, Color(0.1, 0.35, 0.95), Color("ffffff1a"))
 	_setup_value_labels()
-#
+
+
 func _on_resized() -> void:
 	var screen_size = get_viewport().get_visible_rect().size
 	var card_width = 200.0
@@ -41,7 +39,7 @@ func _create_bar_value_label(bar: ProgressBar) -> Label:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_font_size_override("font_size", 12)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_constant_override("outline_size", 2)
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -51,16 +49,6 @@ func _create_bar_value_label(bar: ProgressBar) -> Label:
 
 func _format_stat_value(value: float, max_value: float) -> String:
 	return "%d / %d" % [roundi(value), roundi(max_value)]
-
-func _style_bar(bar: ProgressBar, fill_color: Color, bg_color: Color) -> void:
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = bg_color
-
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = fill_color
-
-	bar.add_theme_stylebox_override("background", bg)
-	bar.add_theme_stylebox_override("fill", fill)
 
 
 func set_card_data(display_name: String, hp_value: float = 100.0, hp_max: float = 100.0, mp_value: float = 0.0, mp_max: float = 100.0) -> void:

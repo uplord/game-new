@@ -11,6 +11,6 @@ skill_name = "Fire"
 skill_type = "magic"
 damage = 40
 mp_cost = 15
-cooldown = 4.0
+cooldown = 10.0
 target_closest_enemy = true
 effects = Array[ExtResource("1_effect")]([ExtResource("3_burn"), null])

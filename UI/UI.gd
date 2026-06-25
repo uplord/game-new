@@ -19,6 +19,8 @@ extends CanvasLayer
 @onready var player_effects_label: Label = player_card.get_node_or_null("MarginContainer/VBoxContainer/Effects")
 @onready var enemy_effects_label: Label = enemy_card.get_node_or_null("MarginContainer/VBoxContainer/Effects")
 
+var camera_manager: Node = null
+
 const MAX_LANDSCAPE_ASPECT := 16.0 / 9.0
 
 const MAP_LABEL_UPDATE_INTERVAL := 0.25
@@ -132,11 +134,9 @@ func update_ui():
 	ui_frame.position = frame_pos
 	ui_frame.size = frame_size
 
-	label_map.add_theme_constant_override(
-		"outline_size",
-		roundi(4)
-	)
+	label_map.add_theme_constant_override("outline_size", roundi(4))
 	label_map.add_theme_color_override("font_outline_color", Color.BLACK)
+	
 
 func _update_map_label() -> void:
 	if label_map == null:
@@ -191,11 +191,11 @@ func show_enemy_card(enemy: Node) -> void:
 		var camera_manager := get_tree().root.get_node("Game/CameraManager")
 
 		if camera_manager != null:
-			var dir = sign(enemy.global_position.x - player.global_position.x)
-
-			# Enemy on right -> player moves to left edge
-			# Enemy on left -> player moves to right edge
-			camera_manager.focus_enemy(dir)
+			if camera_manager.has_method("focus_enemy_for_positions"):
+				camera_manager.focus_enemy_for_positions(player.global_position.x, enemy.global_position.x)
+			else:
+				var dir = sign(enemy.global_position.x - player.global_position.x)
+				camera_manager.focus_enemy(dir)
 
 	if current_enemy_target != null and current_enemy_target.has_method("set_selected"):
 		current_enemy_target.set_selected(true)
@@ -208,6 +208,7 @@ func _move_player_close_to_enemy(enemy: Node) -> void:
 	var player := SceneManager.player
 	if player != null and is_instance_valid(player) and player.has_method("move_close_to_enemy"):
 		player.move_close_to_enemy(enemy)
+
 
 func _should_move_player_back_to_enemy(enemy: Node) -> bool:
 	if enemy == null or not is_instance_valid(enemy):
@@ -411,6 +412,8 @@ func _on_battle_skill_pressed(skill_id: String) -> void:
 		packet["enemy_mp"] = _get_enemy_mp(current_enemy_target)
 		packet["enemy_max_mp"] = _get_enemy_max_mp(current_enemy_target)
 
+	_set_auto_skill_pending(skill_id)
+	_update_battle_buttons()
 	ServerManager.send_to_server(packet)
 
 
@@ -478,18 +481,24 @@ func _update_battle_buttons() -> void:
 		var button := battle_buttons.get_child(i) as Button
 		if button == null or i >= skill_button_order.size():
 			continue
+
 		var skill_id = skill_button_order[i]
 		var usable := _is_skill_usable(skill_id, false)
-		button.disabled = not usable or _is_auto_skill_pending(str(skill_id))
-		
+		var disabled_for_pending := _is_auto_skill_pending(str(skill_id))
+		button.disabled = not usable or disabled_for_pending
+
+		var countdown_remaining := _skill_cooldown_remaining(str(skill_id))
+
+		if button.has_method("set_countdown_text"):
+			if countdown_remaining > 0.0:
+				button.call("set_countdown_text", str(int(ceil(countdown_remaining))))
+			else:
+				button.call("set_countdown_text", "")
+
 		button.tooltip_text = _build_skill_tooltip(skill_id)
 
 
-
-
 func _setup_skill_info_panel() -> void:
-	# Skill details are shown only in button tooltips.
-	# This prevents duplicate info from appearing in a separate panel.
 	if skill_info_panel != null:
 		skill_info_panel.visible = false
 
@@ -580,7 +589,7 @@ func _format_active_effects(effects) -> String:
 	if names.is_empty():
 		return ""
 
-	return "\n".join(names)
+	return ", ".join(names)
 
 
 func _show_skill_info(skill_id: String) -> void:
@@ -721,6 +730,10 @@ func _format_number(value: float) -> String:
 	return "%.1f" % value
 
 
+func _battle_button_disabled_cooldown_remaining(skill_id: String) -> float:
+	return max(_global_skill_cooldown_remaining(), _skill_cooldown_remaining(skill_id))
+
+
 func _global_skill_cooldown_remaining() -> float:
 	var player = battle_state.get("player", {})
 	var cooldowns = player.get("cooldowns", {})
@@ -780,6 +793,16 @@ func _set_auto_skill_pending(skill_id: String) -> void:
 func _clear_auto_skill_pending() -> void:
 	_ensure_auto_skill_pending()
 	auto_skill_pending.clear()
+
+
+func _auto_skill_pending_elapsed(skill_id: String) -> float:
+	_ensure_auto_skill_pending()
+
+	if not auto_skill_pending.has(skill_id):
+		return AUTO_SKILL_PENDING_TIMEOUT
+
+	var sent_at := float(auto_skill_pending.get(skill_id, 0.0))
+	return max(0.0, (Time.get_ticks_msec() / 1000.0) - sent_at)
 
 
 func _is_auto_skill_pending(skill_id: String) -> bool:

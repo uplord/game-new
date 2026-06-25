@@ -172,7 +172,7 @@ func _update_visual_pose(display_velocity: Vector2) -> void:
 		if abs(display_velocity.x) > VISUAL_MOVE_EPSILON:
 			set_facing(sign(display_velocity.x))
 	else:
-		set_pose(PlayerUtil.PlayerPose.IDLE)
+		set_pose(server_pose)
 
 
 

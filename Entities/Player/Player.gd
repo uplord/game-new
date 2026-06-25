@@ -27,6 +27,7 @@ const CLICK_STOP_DISTANCE := 8.0
 const ENGAGEMENT_PADDING := 48.0
 const MIN_ENEMY_APPROACH_DISTANCE := 128.0
 const ENEMY_DISTANCE_TOLERANCE := 8.0
+const ENEMY_TOO_CLOSE_TOLERANCE := 12.0
 
 const MIN_CLICK_DISTANCE := 10.0
 const MOVE_THRESHOLD := 2.0
@@ -55,6 +56,8 @@ var movement_sequence := 0
 
 var prev_pose: PlayerPose = PlayerPose.IDLE
 var approach_enemy: Node2D = null
+var enemy_approach_tried_alternate := false
+var enemy_approach_direction_away := Vector2.ZERO
 var attacking_pose_active := false
 
 
@@ -149,9 +152,18 @@ func _physics_process(_delta: float) -> void:
 		move_and_slide()
 		
 		if get_slide_collision_count() > 0 and mouse_mode == MouseMode.CLICK_MOVE:
-			mouse_mode = MouseMode.NONE
-			click_target = Vector2.ZERO
-			velocity = Vector2.ZERO
+			if approach_enemy != null and is_instance_valid(approach_enemy):
+				if _try_enemy_alternate_position():
+					velocity = Vector2.ZERO
+				else:
+					_stop_enemy_approach_if_close()
+					mouse_mode = MouseMode.NONE
+					click_target = Vector2.ZERO
+					velocity = Vector2.ZERO
+			else:
+				mouse_mode = MouseMode.NONE
+				click_target = Vector2.ZERO
+				velocity = Vector2.ZERO
 
 	var movement_delta := position - prev_pos
 
@@ -176,6 +188,8 @@ func _get_movement_input() -> Vector2:
 	if keyboard_input != Vector2.ZERO:
 		_clear_enemy_target()
 		approach_enemy = null
+		enemy_approach_tried_alternate = false
+		enemy_approach_direction_away = Vector2.ZERO
 		mouse_mode = MouseMode.NONE
 		follow_moving = false
 		return keyboard_input
@@ -203,6 +217,8 @@ func _get_click_move_input() -> Vector2:
 			_focus_camera_on_enemy(approach_enemy)
 
 		approach_enemy = null
+		enemy_approach_tried_alternate = false
+		enemy_approach_direction_away = Vector2.ZERO
 		_send_stop()
 		return Vector2.ZERO
 
@@ -244,6 +260,8 @@ func _on_click() -> void:
 
 	_clear_enemy_target()
 	approach_enemy = null
+	enemy_approach_tried_alternate = false
+	enemy_approach_direction_away = Vector2.ZERO
 	click_target = new_target
 	mouse_mode = MouseMode.CLICK_MOVE
 	follow_moving = false
@@ -257,6 +275,8 @@ func _on_click() -> void:
 func _on_hold_start() -> void:
 	_clear_enemy_target()
 	approach_enemy = null
+	enemy_approach_tried_alternate = false
+	enemy_approach_direction_away = Vector2.ZERO
 	click_target = Vector2.ZERO
 	mouse_mode = MouseMode.HOLD_FOLLOW
 	follow_moving = false
@@ -291,7 +311,11 @@ func is_close_to_enemy(enemy: Node) -> bool:
 	var enemy_node := enemy as Node2D
 	var desired_distance := get_enemy_approach_distance(self, enemy_node)
 	var current_distance := global_position.distance_to(enemy_node.global_position)
-	return abs(current_distance - desired_distance) <= ENEMY_DISTANCE_TOLERANCE
+
+	# The desired distance is the furthest useful engagement distance, not an
+	# exact point the player must hit. If map collision stops the player a little
+	# closer than ideal, combat should still be allowed to start.
+	return current_distance <= desired_distance + ENEMY_DISTANCE_TOLERANCE
 
 
 func _move_close_to_enemy(enemy: Node) -> void:
@@ -316,13 +340,6 @@ func _move_close_to_enemy(enemy: Node) -> void:
 
 	_face_global_position(enemy_position)
 
-	if abs(current_distance - desired_distance) <= ENEMY_DISTANCE_TOLERANCE:
-		mouse_mode = MouseMode.NONE
-		click_target = Vector2.ZERO
-		_focus_camera_on_enemy(approach_enemy)
-		_send_stop()
-		return
-
 	var direction_away_from_enemy := Vector2.ZERO
 
 	if current_distance > 0.01:
@@ -330,19 +347,93 @@ func _move_close_to_enemy(enemy: Node) -> void:
 	else:
 		direction_away_from_enemy = Vector2.LEFT if facing > 0 else Vector2.RIGHT
 
-	var desired_global_position := enemy_position + direction_away_from_enemy * desired_distance
+	# If the player is already at a good engagement distance, start/hold the
+	# target normally. If they are too close, first step away to the preferred
+	# distance instead of fighting nose-to-nose.
+	if is_close_to_enemy(approach_enemy) and not _is_too_close_to_enemy(approach_enemy):
+		mouse_mode = MouseMode.NONE
+		click_target = Vector2.ZERO
+		enemy_approach_tried_alternate = false
+		enemy_approach_direction_away = Vector2.ZERO
+		_focus_camera_on_enemy(approach_enemy)
+		_send_stop()
+		return
 
-	var desired_local_position := desired_global_position
+	enemy_approach_tried_alternate = false
+	enemy_approach_direction_away = direction_away_from_enemy
+	_set_enemy_approach_target(enemy_position + enemy_approach_direction_away * desired_distance)
+
+
+func _is_too_close_to_enemy(enemy: Node) -> bool:
+	if enemy == null or not is_instance_valid(enemy):
+		return false
+	if not (enemy is Node2D):
+		return false
+
+	var enemy_node := enemy as Node2D
+	var desired_distance := get_enemy_approach_distance(self, enemy_node)
+	var current_distance := global_position.distance_to(enemy_node.global_position)
+
+	return current_distance < desired_distance - ENEMY_TOO_CLOSE_TOLERANCE
+
+
+func _try_enemy_alternate_position() -> bool:
+	if enemy_approach_tried_alternate:
+		return false
+	if approach_enemy == null or not is_instance_valid(approach_enemy):
+		return false
+
+	var enemy_position := approach_enemy.global_position
+	var desired_distance := get_enemy_approach_distance(self, approach_enemy)
+
+	# Use the side chosen when the enemy was first targeted. Previously this was
+	# recalculated from the player's current blocked position, so after the
+	# player slid around collision the "opposite" side could be wrong.
+	var direction_away_from_enemy := enemy_approach_direction_away
+	if direction_away_from_enemy == Vector2.ZERO:
+		var offset_from_enemy := global_position - enemy_position
+		var current_distance := offset_from_enemy.length()
+		if current_distance > 0.01:
+			direction_away_from_enemy = offset_from_enemy.normalized()
+		else:
+			direction_away_from_enemy = Vector2.LEFT if facing > 0 else Vector2.RIGHT
+
+	enemy_approach_tried_alternate = true
+	_set_enemy_approach_target(enemy_position - direction_away_from_enemy * desired_distance)
+	return true
+
+
+func _set_enemy_approach_target(target_global_position: Vector2) -> void:
+	var target_local_position := target_global_position
 	if get_parent() is Node2D:
-		desired_local_position = (get_parent() as Node2D).to_local(desired_global_position)
+		target_local_position = (get_parent() as Node2D).to_local(target_global_position)
 
-	click_target = desired_local_position
+	click_target = target_local_position
 	mouse_mode = MouseMode.CLICK_MOVE
 	follow_moving = false
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
 
+	# When the first side is blocked and we move to the alternate side, the
+	# movement direction can be away from the enemy. Keep the character aimed at
+	# the enemy instead of letting the movement direction choose the facing.
+	_face_enemy_target_if_active()
 	_send_move(click_target)
+
+
+func _stop_enemy_approach_if_close() -> void:
+	if approach_enemy == null or not is_instance_valid(approach_enemy):
+		return
+
+	if not is_close_to_enemy(approach_enemy):
+		return
+
+	_face_global_position(approach_enemy.global_position)
+	_focus_camera_on_enemy(approach_enemy)
+	approach_enemy = null
+	enemy_approach_tried_alternate = false
+	enemy_approach_direction_away = Vector2.ZERO
+	_send_stop()
 
 
 func get_enemy_approach_distance(player: Node, enemy: Node) -> float:
@@ -391,6 +482,8 @@ func cancel_mouse_movement() -> void:
 	follow_moving = false
 	click_target = Vector2.ZERO
 	approach_enemy = null
+	enemy_approach_tried_alternate = false
+	enemy_approach_direction_away = Vector2.ZERO
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
 
@@ -454,6 +547,9 @@ func set_pose(pose: PlayerPose) -> void:
 	prev_pose = pose
 	animation_state.travel(PlayerUtil.to_anim_name(pose))
 
+	if not actually_moving:
+		_send_stop()
+
 
 func _update_camera_look_ahead() -> void:
 	if camera_controller == null or not is_instance_valid(camera_controller):
@@ -463,10 +559,18 @@ func _update_camera_look_ahead() -> void:
 	# If the player is running while an enemy is targeted,
 	# do not keep the enemy-focus camera offset active.
 	if actually_moving and _has_active_enemy_target():
-		if camera_controller.has_method("reset_to_default_camera"):
-			camera_controller.reset_to_default_camera()
-		elif camera_controller.has_method("clear_enemy_focus"):
-			camera_controller.clear_enemy_focus()
+		var ui := game.get_node_or_null("UI")
+		var enemy = ui.current_enemy_target if ui != null else null
+
+		if enemy != null and is_instance_valid(enemy):
+			var to_enemy_x = sign(enemy.global_position.x - global_position.x)
+			var moving_x = sign(velocity.x)
+
+			if moving_x != 0 and moving_x != to_enemy_x:
+				if camera_controller.has_method("reset_to_default_camera"):
+					camera_controller.reset_to_default_camera()
+				elif camera_controller.has_method("clear_enemy_focus"):
+					camera_controller.clear_enemy_focus()
 
 	if mouse_mode == MouseMode.HOLD_FOLLOW and mouse_press_active:
 		var screen_dir := _get_screen_mouse_direction()
@@ -488,8 +592,7 @@ func _update_camera_look_ahead() -> void:
 
 
 func _update_facing_from_movement(movement_delta: Vector2) -> void:
-	if approach_enemy != null and is_instance_valid(approach_enemy):
-		_face_global_position(approach_enemy.global_position)
+	if _face_enemy_target_if_active():
 		return
 
 	if mouse_mode == MouseMode.HOLD_FOLLOW and mouse_press_active:
@@ -505,10 +608,25 @@ func _update_facing_from_movement(movement_delta: Vector2) -> void:
 
 
 func _update_facing_towards_approach_enemy() -> void:
-	if approach_enemy == null or not is_instance_valid(approach_enemy):
-		return
+	_face_enemy_target_if_active()
 
-	_face_global_position(approach_enemy.global_position)
+
+func _face_enemy_target_if_active() -> bool:
+	var enemy: Node2D = null
+
+	if approach_enemy != null and is_instance_valid(approach_enemy):
+		enemy = approach_enemy
+	else:
+		var ui := game.get_node_or_null("UI") if game != null else null
+		var current_target = ui.current_enemy_target if ui != null else null
+		if current_target != null and is_instance_valid(current_target) and current_target is Node2D:
+			enemy = current_target as Node2D
+
+	if enemy == null:
+		return false
+
+	_face_global_position(enemy.global_position)
+	return true
 
 
 func _face_global_position(target_global_position: Vector2) -> void:
@@ -594,16 +712,16 @@ func _focus_camera_on_enemy(enemy: Node2D) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 
-	var direction = sign(enemy.global_position.x - global_position.x)
-
-	if direction == 0:
-		direction = facing
-
-	if camera_controller.has_method("focus_enemy"):
-		camera_controller.focus_enemy(direction)
+	if camera_controller.has_method("focus_enemy_for_positions"):
+		camera_controller.focus_enemy_for_positions(
+			global_position.x,
+			enemy.global_position.x
+		)
 
 
 func _send_position_if_needed() -> void:
+	_face_enemy_target_if_active()
+
 	if not actually_moving:
 		if was_moving_last_frame:
 			was_moving_last_frame = false
@@ -634,6 +752,8 @@ func _send_position_if_needed() -> void:
 
 
 func _send_move(_target: Vector2) -> void:
+	_face_enemy_target_if_active()
+
 	ServerManager.send_to_server({
 		"type": "c_move_player",
 		"sequence": _next_movement_sequence(),
@@ -648,6 +768,8 @@ func _send_move(_target: Vector2) -> void:
 
 
 func _send_stop() -> void:
+	_face_enemy_target_if_active()
+
 	ServerManager.send_to_server({
 		"type": "c_stop_player",
 		"sequence": _next_movement_sequence(),

@@ -12,7 +12,7 @@ void fragment() {
 	float alpha = 1.0 - smoothstep(1.0 - edge_softness, 1.0, dist);
 
 	if (selected) {
-		COLOR = vec4(0.651, 0.071, 0.071, alpha * 0.5);
+		COLOR = vec4(1.0, 0.733, 0.0, alpha * 0.5);
 	} else {
 		COLOR = vec4(0.0, 0.0, 0.0, alpha * 0.15);
 	}
