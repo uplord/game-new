@@ -588,7 +588,14 @@ func _update_camera_look_ahead() -> void:
 		return
 
 	var horizontal_amount := velocity.x / move_speed
-	camera_controller.set_look_ahead_direction(horizontal_amount)
+
+	# Keep the camera biased toward the direction the player is facing even
+	# after movement stops. Previously velocity.x became 0 when stationary,
+	# which made the camera drift back to centered.
+	if abs(horizontal_amount) <= 0.01:
+		horizontal_amount = float(last_facing)
+
+	camera_controller.set_look_ahead_direction(clamp(horizontal_amount, -1.0, 1.0))
 
 
 func _update_facing_from_movement(movement_delta: Vector2) -> void:
