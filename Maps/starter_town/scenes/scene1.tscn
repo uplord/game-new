@@ -64,20 +64,34 @@ position = Vector2(-593, -10)
 [node name="Enemies" type="Node2D" parent="." unique_id=1861785255]
 
 [node name="Enemy2" parent="Enemies" unique_id=10092746 instance=ExtResource("5_n1nco")]
-position = Vector2(339, -19)
+position = Vector2(347, -62)
 model_data = SubResource("Resource_8obig")
 enemy_name = "Baby dragon"
 max_hp = 250.0
 hp = 250.0
+approach_point_count = 3
+approach_point_arc_degrees = 180.0
+approach_point_arc_offset_degrees = 90.0
+approach_point_directions = PackedVector2Array()
+approach_point_debug_player_width = null
+approach_point_debug_engagement_padding = null
+approach_point_debug_min_distance = null
 
 [node name="Enemy3" parent="Enemies" unique_id=1732991765 instance=ExtResource("5_n1nco")]
-position = Vector2(-371, 188)
+position = Vector2(-335, 70)
 model_data = SubResource("Resource_f1vb1")
 animation_tree_enabled = true
 starting_pose = 1
 enemy_name = "Human enemy"
 max_hp = 500.0
 hp = 500.0
+approach_point_count = 3
+approach_point_arc_degrees = 180.0
+approach_point_arc_offset_degrees = 90.0
+approach_point_directions = PackedVector2Array()
+approach_point_debug_player_width = null
+approach_point_debug_engagement_padding = null
+approach_point_debug_min_distance = null
 
 [node name="Teleports" type="Node2D" parent="." unique_id=1559874224]
 

@@ -458,6 +458,26 @@ func _wait_for_player_enemy_approach(enemy: Node) -> void:
 		await get_tree().physics_frame
 
 
+func _should_keep_current_enemy_target_on_empty_state(_player_state: Dictionary) -> bool:
+	if current_enemy_target == null or not is_instance_valid(current_enemy_target):
+		return false
+	var target_canvas := current_enemy_target as CanvasItem
+	if target_canvas != null and not target_canvas.visible:
+		return false
+
+	var player_node := SceneManager.player
+	if player_node == null or not is_instance_valid(player_node):
+		return false
+
+	if player_node.has_method("is_enemy_approach_in_progress") and player_node.is_enemy_approach_in_progress(current_enemy_target):
+		return true
+
+	if player_node.has_method("is_close_to_enemy") and player_node.is_close_to_enemy(current_enemy_target):
+		return true
+
+	return false
+
+
 func apply_battle_state(state: Dictionary) -> void:
 	battle_state = state
 	battle_state_received_at = Time.get_ticks_msec() / 1000.0
@@ -484,6 +504,14 @@ func apply_battle_state(state: Dictionary) -> void:
 
 	var enemy = state.get("enemy", {})
 	if str(enemy.get("id", "")) == "":
+		# After a scene change, a delayed/empty battle state can arrive just after the
+		# player selects an enemy in the new scene. Do not let that stale empty state
+		# clear a valid local target while the player is moving to, or already standing
+		# at, the selected approach point.
+		if _should_keep_current_enemy_target_on_empty_state(player):
+			_update_battle_buttons()
+			return
+
 		hide_enemy_card(true)
 		_update_battle_buttons()
 		return

@@ -35,12 +35,13 @@ shape = SubResource("RectangleShape2D_rr3rg")
 [node name="Enemies" type="Node2D" parent="." unique_id=1861785255]
 
 [node name="Enemy" parent="Enemies" unique_id=167616825 instance=ExtResource("5_itsjl")]
-position = Vector2(425, 211)
+position = Vector2(444, 198)
 model_data = SubResource("Resource_rgito")
 enemy_name = "Slime baby"
-approach_point_count = null
-approach_point_arc_degrees = null
-approach_point_arc_offset_degrees = null
+approach_point_count = 3
+approach_point_arc_degrees = 90.0
+approach_point_arc_offset_degrees = 210.0
+approach_point_directions = PackedVector2Array()
 
 [node name="Teleports" type="Node2D" parent="." unique_id=881258272]
 

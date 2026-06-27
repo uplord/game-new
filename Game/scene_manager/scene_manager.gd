@@ -400,7 +400,7 @@ func _free_remote_player_now(remote_player: Node) -> void:
 	remote_player.queue_free()
 
 
-func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO, pose: int = 0, sequence: int = -1, stopped: bool = false):
+func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO, pose: int = 0, sequence: int = -1, stopped: bool = false, reserved_approach_target: Vector2 = Vector2.INF):
 	if remote_players.has(id):
 		_free_remote_player_now(remote_players[id])
 		remote_players.erase(id)
@@ -410,7 +410,7 @@ func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity
 	if remote_player.has_method("set_initial_facing"):
 		remote_player.set_initial_facing(facing)
 	if remote_player.has_method("set_remote_state"):
-		remote_player.set_remote_state(pos, remote_velocity, sequence, stopped, pose, facing)
+		remote_player.set_remote_state(pos, remote_velocity, sequence, stopped, pose, facing, reserved_approach_target)
 	else:
 		remote_player.set_target_position(pos)
 
@@ -424,9 +424,9 @@ func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity
 	remote_players[id] = remote_player
 
 
-func update_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO, pose: int = 0, sequence: int = -1, stopped: bool = false):
+func update_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO, pose: int = 0, sequence: int = -1, stopped: bool = false, reserved_approach_target: Vector2 = Vector2.INF):
 	if not remote_players.has(id):
-		spawn_remote_player(id, pos, facing, remote_velocity, pose, sequence, stopped)
+		spawn_remote_player(id, pos, facing, remote_velocity, pose, sequence, stopped, reserved_approach_target)
 		return
 
 	var p = remote_players[id]
@@ -436,7 +436,7 @@ func update_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocit
 		return
 
 	if p.has_method("set_remote_state"):
-		p.set_remote_state(pos, remote_velocity, sequence, stopped, pose, facing)
+		p.set_remote_state(pos, remote_velocity, sequence, stopped, pose, facing, reserved_approach_target)
 	elif p.has_method("set_target_position"):
 		p.set_target_position(pos)
 	else:

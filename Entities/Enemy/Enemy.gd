@@ -3,8 +3,6 @@ extends Node2D
 
 signal targeted(enemy: Node)
 
-# Expose the nested Model node's options on the Enemy itself so every Enemy
-# instance placed in a map can be configured from the Inspector.
 @export_category("Model")
 @export var model_data: ModelData:
 	set(value):
@@ -34,24 +32,58 @@ signal targeted(enemy: Node)
 @export var max_mp := 100.0
 @export var mp := 100.0
 
-# Number of generated approach slots around this enemy.
-# Player.gd multiplies each generated direction by the enemy/player engagement
-# distance, so MIN_ENEMY_APPROACH_DISTANCE is still respected.
-@export_range(2, 32, 1) var approach_point_count := 8
 
-# 360 = full ring around the enemy.
-# 180 = only the left/right side arc, useful if you do not want players standing
-# directly above/below the enemy in a side-view room.
-@export_range(45.0, 360.0, 1.0) var approach_point_arc_degrees := 360.0
+@export_category("Approach Points")
+@export_range(2, 32, 1) var approach_point_count: int = 8:
+	set(value):
+		approach_point_count = clampi(int(value), 2, 32)
+		queue_redraw()
 
-# Rotates the generated slot pattern.
-# 0 starts on the right side of the enemy.
-# 90 starts below the enemy in Godot's 2D coordinates.
-@export_range(-360.0, 360.0, 1.0) var approach_point_arc_offset_degrees := 0.0
+@export_range(45.0, 360.0, 1.0) var approach_point_arc_degrees: float = 360.0:
+	set(value):
+		approach_point_arc_degrees = clampf(float(value), 45.0, 360.0)
+		queue_redraw()
 
-# Optional manual override. Leave empty to use approach_point_count.
-# Add directions here only if you want hand-authored slots.
-@export var approach_point_directions: PackedVector2Array = PackedVector2Array()
+@export_range(-360.0, 360.0, 1.0) var approach_point_arc_offset_degrees: float = 0.0:
+	set(value):
+		approach_point_arc_offset_degrees = float(value)
+		queue_redraw()
+
+@export var approach_point_directions: PackedVector2Array = PackedVector2Array():
+	set(value):
+		approach_point_directions = value
+		queue_redraw()
+
+
+@export_category("Approach Point Debug")
+@export var show_approach_points := true:
+	set(value):
+		show_approach_points = value
+		queue_redraw()
+
+# These preview values only affect the yellow editor circles.
+# They mirror Player.gd, so the circles represent the player's center/origin
+# position when standing in an approach slot.
+@export var approach_point_debug_player_width := 140.0:
+	set(value):
+		approach_point_debug_player_width = maxf(value, 1.0)
+		queue_redraw()
+
+@export var approach_point_debug_engagement_padding := 32.0:
+	set(value):
+		approach_point_debug_engagement_padding = maxf(value, 0.0)
+		queue_redraw()
+
+@export var approach_point_debug_min_distance := 32.0:
+	set(value):
+		approach_point_debug_min_distance = maxf(value, 1.0)
+		queue_redraw()
+
+@export var approach_point_debug_radius := 6.0:
+	set(value):
+		approach_point_debug_radius = maxf(value, 1.0)
+		queue_redraw()
+
 
 @onready var body: Node = $Base/Model
 
@@ -62,11 +94,111 @@ func _ready() -> void:
 	_sync_model_options()
 
 	if Engine.is_editor_hint():
+		set_process(true)
 		return
 
 	add_to_group("targetable_enemies")
-
 	_connect_target_area()
+
+
+func _process(_delta: float) -> void:
+	if Engine.is_editor_hint():
+		queue_redraw()
+
+
+func _draw() -> void:
+	if not Engine.is_editor_hint():
+		return
+
+	if not show_approach_points:
+		return
+
+	var directions := get_approach_point_directions()
+	var desired_distance := get_debug_approach_distance()
+
+	for i in range(directions.size()):
+		var direction := directions[i]
+		if direction.length_squared() <= 0.0001:
+			continue
+
+		var point_global := global_position + direction.normalized() * desired_distance
+		var local_point := to_local(point_global)
+
+		draw_circle(local_point, approach_point_debug_radius + 2.0, Color.BLACK)
+		draw_circle(local_point, approach_point_debug_radius, Color.YELLOW)
+
+		draw_line(Vector2.ZERO, local_point, Color.YELLOW, 1.0)
+
+		draw_string(
+			ThemeDB.fallback_font,
+			local_point + Vector2(8.0, -8.0),
+			str(i + 1),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			12,
+			Color.WHITE
+		)
+
+
+func get_debug_approach_distance() -> float:
+	var spacing_scale := _get_debug_spacing_scale()
+	var player_half := approach_point_debug_player_width * spacing_scale * 0.5
+	var enemy_half := get_debug_collision_width() * 0.5
+
+	return max(
+		player_half + enemy_half + approach_point_debug_engagement_padding * spacing_scale,
+		approach_point_debug_min_distance * spacing_scale
+	)
+
+
+func get_debug_collision_width() -> float:
+	var shape_node := find_child("CollisionShape2D", true, false) as CollisionShape2D
+	if shape_node == null or shape_node.shape == null:
+		return approach_point_debug_min_distance * _get_debug_spacing_scale()
+
+	var shape := shape_node.shape
+	var scale_x : float = abs(shape_node.global_scale.x)
+
+	if shape is RectangleShape2D:
+		return shape.size.x * scale_x
+
+	if shape is CapsuleShape2D:
+		return shape.radius * 2.0 * scale_x
+
+	if shape is CircleShape2D:
+		return shape.radius * 2.0 * scale_x
+
+	return approach_point_debug_min_distance * _get_debug_spacing_scale()
+
+
+func _get_debug_spacing_scale() -> float:
+	return max(0.001, (abs(global_scale.x) + abs(global_scale.y)) * 0.5)
+
+
+func get_approach_point_directions() -> PackedVector2Array:
+	if approach_point_directions.size() > 0:
+		return approach_point_directions
+
+	var directions := PackedVector2Array()
+
+	var count := clampi(approach_point_count, 2, 32)
+	var arc := deg_to_rad(approach_point_arc_degrees)
+	var offset := deg_to_rad(approach_point_arc_offset_degrees)
+
+	if is_equal_approx(approach_point_arc_degrees, 360.0):
+		for i in range(count):
+			var angle := offset + TAU * float(i) / float(count)
+			directions.append(Vector2.RIGHT.rotated(angle))
+	else:
+		for i in range(count):
+			var t := 0.0
+			if count > 1:
+				t = float(i) / float(count - 1)
+
+			var angle := offset - arc * 0.5 + arc * t
+			directions.append(Vector2.RIGHT.rotated(angle))
+
+	return directions
 
 
 func set_selected(value: bool) -> void:
@@ -125,6 +257,7 @@ func _on_target_area_input_event(_viewport: Viewport, event: InputEvent, _shape_
 	target()
 	get_viewport().set_input_as_handled()
 
+
 func target() -> void:
 	if Engine.is_editor_hint():
 		return
@@ -134,10 +267,12 @@ func target() -> void:
 	_show_enemy_card()
 	_move_player_close_to_self()
 
+
 func _move_player_close_to_self() -> void:
 	var player := SceneManager.player
 	if player != null and is_instance_valid(player) and player.has_method("move_close_to_enemy"):
 		player.move_close_to_enemy(self)
+
 
 func _show_enemy_card() -> void:
 	var game := get_tree().root.get_node_or_null("Game")
@@ -152,6 +287,4 @@ func _show_enemy_card() -> void:
 func _cancel_player_mouse_movement() -> void:
 	var player := SceneManager.player
 	if player != null and is_instance_valid(player) and player.has_method("cancel_mouse_movement"):
-		# Keep the current camera offset when targeting an enemy. The player should
-		# move to engagement range, but the camera should not jump/focus on target.
 		player.cancel_mouse_movement(false)

@@ -24,8 +24,8 @@ const HOLD_SEND_INTERVAL := 0.033
 const HOLD_TARGET_CHANGE_DISTANCE := 6.0
 const CLICK_STOP_DISTANCE := 8.0
 
-const ENGAGEMENT_PADDING := 48.0
-const MIN_ENEMY_APPROACH_DISTANCE := 64.0
+const ENGAGEMENT_PADDING := 32.0
+const MIN_ENEMY_APPROACH_DISTANCE := 32.0
 const ENEMY_DISTANCE_TOLERANCE := 8.0
 const ENEMY_TOO_CLOSE_TOLERANCE := 12.0
 
@@ -59,6 +59,7 @@ var approach_enemy: Node2D = null
 var enemy_approach_candidate_points: Array[Vector2] = []
 var enemy_approach_candidate_index := 0
 var enemy_approach_direction_away := Vector2.ZERO
+var enemy_approach_reserved_target := Vector2.INF
 var attacking_pose_active := false
 var active_teleport_trigger_key := ""
 
@@ -233,16 +234,13 @@ func _get_click_move_input() -> Vector2:
 	var stop_distance_sq := CLICK_STOP_DISTANCE * CLICK_STOP_DISTANCE
 
 	if to_target.length_squared() <= stop_distance_sq:
-		mouse_mode = MouseMode.NONE
-		click_target = Vector2.ZERO
-
 		if approach_enemy != null and is_instance_valid(approach_enemy):
-			_face_global_position(approach_enemy.global_position)
-			_focus_camera_on_enemy(approach_enemy)
+			_finish_enemy_approach(approach_enemy)
+		else:
+			mouse_mode = MouseMode.NONE
+			click_target = Vector2.ZERO
+			_send_stop()
 
-		approach_enemy = null
-		_reset_enemy_approach_candidates()
-		_send_stop()
 		return Vector2.ZERO
 
 	return to_target.normalized()
@@ -472,23 +470,37 @@ func _move_close_to_enemy(enemy: Node, force_reposition: bool = false) -> void:
 	# player has backed away or ended up on the wrong/loose side, pressing attack
 	# always tries to run them back to the closest free approach point before fighting.
 	if not force_reposition and is_close_to_enemy(approach_enemy) and not _is_too_close_to_enemy(approach_enemy):
-		mouse_mode = MouseMode.NONE
-		click_target = Vector2.ZERO
-		_reset_enemy_approach_candidates()
-		_focus_camera_on_enemy(approach_enemy)
-		_send_stop()
+		enemy_approach_reserved_target = preferred_target
+		_finish_enemy_approach(approach_enemy)
 		return
 
 	if force_reposition and global_position.distance_squared_to(preferred_target) <= CLICK_STOP_DISTANCE * CLICK_STOP_DISTANCE:
-		mouse_mode = MouseMode.NONE
-		click_target = Vector2.ZERO
-		_reset_enemy_approach_candidates()
-		_face_global_position(enemy_position)
-		_send_stop()
+		enemy_approach_reserved_target = preferred_target
+		_finish_enemy_approach(approach_enemy)
 		return
 
 	enemy_approach_direction_away = (preferred_target - enemy_position).normalized()
 	_set_enemy_approach_target(preferred_target)
+
+
+func _finish_enemy_approach(enemy: Node2D) -> void:
+	mouse_mode = MouseMode.NONE
+	click_target = Vector2.ZERO
+
+	if enemy != null and is_instance_valid(enemy):
+		_face_global_position(enemy.global_position)
+		_focus_camera_on_enemy(enemy)
+
+	approach_enemy = null
+	_reset_enemy_approach_candidates(false)
+
+	# The player has reached the selected slot. Force the local pose before the
+	# stop packet is sent, otherwise a scene-change/join can leave the server and
+	# remote clients with the previous idle/running pose for this target.
+	if enemy != null and is_instance_valid(enemy) and is_close_to_enemy(enemy) and not _is_too_close_to_enemy(enemy):
+		set_pose(PlayerPose.FIGHT)
+
+	_send_stop()
 
 
 func _is_too_close_to_enemy(enemy: Node) -> bool:
@@ -508,43 +520,65 @@ func _try_enemy_alternate_position() -> bool:
 	if approach_enemy == null or not is_instance_valid(approach_enemy):
 		return false
 
-	if enemy_approach_candidate_points.is_empty():
-		var desired_distance := get_enemy_approach_distance(self, approach_enemy)
-		_build_enemy_approach_candidates(approach_enemy, desired_distance)
+	var desired_distance := get_enemy_approach_distance(self, approach_enemy)
+	_build_enemy_approach_candidates(approach_enemy, desired_distance)
 
-	enemy_approach_candidate_index += 1
+	var current_target_global := click_target
+	if get_parent() is Node2D:
+		current_target_global = (get_parent() as Node2D).to_global(click_target)
 
-	while enemy_approach_candidate_index < enemy_approach_candidate_points.size():
-		var next_target := enemy_approach_candidate_points[enemy_approach_candidate_index]
-		if not _is_enemy_approach_point_occupied(next_target, approach_enemy):
-			enemy_approach_direction_away = (next_target - approach_enemy.global_position).normalized()
-			_set_enemy_approach_target(next_target)
-			return true
+	for target in enemy_approach_candidate_points:
+		if target.distance_squared_to(current_target_global) <= 1.0:
+			continue
 
-		enemy_approach_candidate_index += 1
+		if _is_enemy_approach_point_occupied(target, approach_enemy):
+			continue
+
+		enemy_approach_candidate_index = enemy_approach_candidate_points.find(target)
+		enemy_approach_direction_away = (target - approach_enemy.global_position).normalized()
+		_set_enemy_approach_target(target)
+		return true
 
 	return false
 
 
-func _reset_enemy_approach_candidates() -> void:
+func _reset_enemy_approach_candidates(clear_reservation: bool = true) -> void:
 	enemy_approach_candidate_points.clear()
 	enemy_approach_candidate_index = 0
 	enemy_approach_direction_away = Vector2.ZERO
+	if clear_reservation:
+		enemy_approach_reserved_target = Vector2.INF
 
 
 func _get_best_enemy_approach_target(enemy: Node2D, desired_distance: float) -> Vector2:
 	_build_enemy_approach_candidates(enemy, desired_distance)
 
-	print("enemy_approach_candidate_points", enemy_approach_candidate_points)
-	for i in range(enemy_approach_candidate_points.size()):
-		var target := enemy_approach_candidate_points[i]
-		if not _is_enemy_approach_point_occupied(target, enemy):
-			enemy_approach_candidate_index = i
-			return target
+	var best_target := Vector2.ZERO
+	var best_distance := INF
+	var found_target := false
+
+	for target in enemy_approach_candidate_points:
+		if _is_enemy_approach_point_occupied(target, enemy):
+			continue
+
+		var distance_sq := global_position.distance_squared_to(target)
+		if distance_sq < best_distance:
+			best_distance = distance_sq
+			best_target = target
+			found_target = true
+
+	if found_target:
+		enemy_approach_candidate_index = enemy_approach_candidate_points.find(best_target)
+		return best_target
 
 	enemy_approach_candidate_index = 0
+
 	if enemy_approach_candidate_points.is_empty():
-		return _get_enemy_side_target(enemy.global_position, _get_horizontal_enemy_approach_direction(enemy.global_position), desired_distance)
+		return _get_enemy_side_target(
+			enemy.global_position,
+			_get_horizontal_enemy_approach_direction(enemy.global_position),
+			desired_distance
+		)
 
 	return enemy_approach_candidate_points[0]
 
@@ -620,7 +654,10 @@ func _get_enemy_approach_directions(enemy: Node2D) -> Array[Vector2]:
 
 
 func _is_enemy_approach_point_occupied(target_global_position: Vector2, enemy: Node2D) -> bool:
-	var occupancy_radius = max(get_collision_width(self), MIN_ENEMY_APPROACH_DISTANCE * 0.5)
+	var occupancy_radius = max(
+		get_collision_width(self),
+		_get_scaled_enemy_distance(MIN_ENEMY_APPROACH_DISTANCE * 0.5, self)
+	)
 	var occupancy_radius_sq = occupancy_radius * occupancy_radius
 
 	for other_player in _get_other_visible_players_for_enemy_slots():
@@ -633,6 +670,10 @@ func _is_enemy_approach_point_occupied(target_global_position: Vector2, enemy: N
 
 		var other_node := other_player as Node2D
 
+		var reserved_target := _get_player_reserved_enemy_approach_target(other_node)
+		if reserved_target != Vector2.INF and reserved_target.distance_squared_to(target_global_position) <= occupancy_radius_sq:
+			return true
+
 		# Only count players who are already close enough to be occupying one of this
 		# enemy's slots. Players elsewhere in the scene should not reserve a point.
 		if other_node.global_position.distance_to(enemy.global_position) > get_enemy_approach_distance(other_node, enemy) + occupancy_radius:
@@ -642,6 +683,26 @@ func _is_enemy_approach_point_occupied(target_global_position: Vector2, enemy: N
 			return true
 
 	return false
+
+
+func _get_player_reserved_enemy_approach_target(player_node: Node2D) -> Vector2:
+	if player_node == self:
+		return enemy_approach_reserved_target
+
+	if player_node.has_method("get_reserved_enemy_approach_target"):
+		var reserved = player_node.get_reserved_enemy_approach_target()
+		if reserved is Vector2:
+			return reserved
+
+	var reserved_value = player_node.get("reserved_enemy_approach_target")
+	if reserved_value is Vector2:
+		return reserved_value
+
+	return Vector2.INF
+
+
+func get_reserved_enemy_approach_target() -> Vector2:
+	return enemy_approach_reserved_target
 
 
 func _get_other_visible_players_for_enemy_slots() -> Array[Node]:
@@ -692,6 +753,7 @@ func _get_enemy_side_target(enemy_position: Vector2, direction_away_from_enemy: 
 
 
 func _set_enemy_approach_target(target_global_position: Vector2) -> void:
+	enemy_approach_reserved_target = target_global_position
 	var target_local_position := target_global_position
 	if get_parent() is Node2D:
 		target_local_position = (get_parent() as Node2D).to_local(target_global_position)
@@ -715,30 +777,46 @@ func _stop_enemy_approach_if_close() -> void:
 	if not is_close_to_enemy(approach_enemy):
 		return
 
-	_face_global_position(approach_enemy.global_position)
-	_focus_camera_on_enemy(approach_enemy)
-	approach_enemy = null
-	_reset_enemy_approach_candidates()
-	_send_stop()
+	_finish_enemy_approach(approach_enemy)
 
 
 func get_enemy_approach_distance(player: Node, enemy: Node) -> float:
 	var player_half := get_collision_width(player) * 0.5
 	var enemy_half := get_collision_width(enemy) * 0.5
+	var spacing_scale := _get_enemy_spacing_scale(player)
 
 	return max(
-		player_half + enemy_half + ENGAGEMENT_PADDING,
-		MIN_ENEMY_APPROACH_DISTANCE
+		player_half + enemy_half + ENGAGEMENT_PADDING * spacing_scale,
+		MIN_ENEMY_APPROACH_DISTANCE * spacing_scale
 	)
+
+
+func _get_scaled_enemy_distance(distance: float, node: Node = null) -> float:
+	return distance * _get_enemy_spacing_scale(node)
+
+
+func _get_enemy_spacing_scale(node: Node = null) -> float:
+	# Enemy approach points are calculated in global coordinates. The player and
+	# enemy collision widths already include the current Map scale, so the fixed
+	# fallback/padding distances must be scaled too. Otherwise a resized window can
+	# make MIN_ENEMY_APPROACH_DISTANCE behave like a fullscreen-sized distance.
+	if node != null and is_instance_valid(node) and node is Node2D:
+		var node_2d := node as Node2D
+		return max(0.001, (abs(node_2d.global_scale.x) + abs(node_2d.global_scale.y)) * 0.5)
+
+	if camera_controller != null and is_instance_valid(camera_controller) and camera_controller.has_method("get_map_scale"):
+		return max(0.001, float(camera_controller.get_map_scale()))
+
+	return 1.0
 
 
 func get_collision_width(node: Node) -> float:
 	if node == null or not is_instance_valid(node):
-		return MIN_ENEMY_APPROACH_DISTANCE
+		return _get_scaled_enemy_distance(MIN_ENEMY_APPROACH_DISTANCE, self)
 
 	var shape_node := node.find_child("CollisionShape2D", true, false) as CollisionShape2D
 	if shape_node == null or shape_node.shape == null:
-		return MIN_ENEMY_APPROACH_DISTANCE
+		return _get_scaled_enemy_distance(MIN_ENEMY_APPROACH_DISTANCE, node)
 
 	var shape := shape_node.shape
 	var scale_x = abs(shape_node.global_scale.x)
@@ -752,7 +830,7 @@ func get_collision_width(node: Node) -> float:
 	if shape is CircleShape2D:
 		return shape.radius * 2.0 * scale_x
 
-	return MIN_ENEMY_APPROACH_DISTANCE
+	return _get_scaled_enemy_distance(MIN_ENEMY_APPROACH_DISTANCE, node)
 
 
 func _clear_enemy_target() -> void:
@@ -1172,6 +1250,7 @@ func _send_position_if_needed() -> void:
 		"velocity": velocity,
 		"facing": facing,
 		"pose": int(prev_pose),
+		"reserved_enemy_approach_target": enemy_approach_reserved_target,
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 		"instance": SceneManager.current_instance,
@@ -1192,6 +1271,7 @@ func _send_move(_target: Vector2) -> void:
 		"velocity": velocity,
 		"facing": facing,
 		"pose": int(prev_pose),
+		"reserved_enemy_approach_target": enemy_approach_reserved_target,
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 		"instance": SceneManager.current_instance,
@@ -1209,6 +1289,7 @@ func _send_stop() -> void:
 		"velocity": Vector2.ZERO,
 		"facing": facing,
 		"pose": int(prev_pose),
+		"reserved_enemy_approach_target": enemy_approach_reserved_target,
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
 		"instance": SceneManager.current_instance,

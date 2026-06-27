@@ -122,6 +122,45 @@ theme_override_font_sizes/font_size = 28
 text = "Uplord Adventure"
 horizontal_alignment = 1
 
+[node name="EmailInput" type="LineEdit" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1479818187]
+custom_minimum_size = Vector2(320, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+placeholder_text = "Email"
+virtual_keyboard_type = 2
+
+[node name="PasswordInput" type="LineEdit" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=506267251]
+custom_minimum_size = Vector2(320, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+placeholder_text = "Password"
+virtual_keyboard_type = 1
+secret = true
+
+[node name="AuthButtons" type="HBoxContainer" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1417850851]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="LoginButton" type="Button" parent="ColorRect/CenterContainer/VBoxContainer/AuthButtons" unique_id=1253706969]
+custom_minimum_size = Vector2(154, 44)
+layout_mode = 2
+text = "Login"
+
+[node name="RegisterButton" type="Button" parent="ColorRect/CenterContainer/VBoxContainer/AuthButtons" unique_id=1514925476]
+custom_minimum_size = Vector2(154, 44)
+layout_mode = 2
+text = "Register"
+
+[node name="StatusLabel" type="Label" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=71176934]
+custom_minimum_size = Vector2(320, 24)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Login or register to play."
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="Button" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1306766417 instance=ExtResource("2_kt4fb")]
 custom_minimum_size = Vector2(40, 48)
 layout_mode = 2
@@ -135,3 +174,4 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_u184e")
 text = "Connect"
 padding_x = 24.0
 border_color = Color(0, 0, 0, 0)
+trim_color = Color(1, 1, 1, 0)

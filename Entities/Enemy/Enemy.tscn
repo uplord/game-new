@@ -17,6 +17,11 @@ mp = 0.0
 approach_point_count = null
 approach_point_arc_degrees = null
 approach_point_arc_offset_degrees = null
+show_approach_points = null
+approach_point_debug_player_width = null
+approach_point_debug_engagement_padding = null
+approach_point_debug_min_distance = null
+approach_point_debug_radius = null
 
 [node name="Base" type="Node2D" parent="." unique_id=1167952262]
 

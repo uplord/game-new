@@ -81,6 +81,7 @@ func _make_sync_player_data(player: Dictionary) -> Dictionary:
 		"direction": player.get("direction", Vector2.RIGHT),
 		"facing": _get_sync_facing(player),
 		"pose": player.get("pose", 0),
+		"reserved_enemy_approach_target": player.get("reserved_enemy_approach_target", Vector2.INF),
 		"sequence": player.get("sequence", 0),
 		"server_time": Time.get_ticks_msec() / 1000.0,
 		"stopped": velocity.length() <= 20.0,
@@ -232,6 +233,7 @@ func _handle_spawn_player(client_id: int) -> void:
 		"direction": Vector2.RIGHT,
 		"facing": 1,
 		"pose": 0,
+		"reserved_enemy_approach_target": Vector2.INF,
 		"sequence": 0,
 		"map": map,
 		"scene": scene,
@@ -272,7 +274,8 @@ func _handle_move_player(client_id: int, data: Dictionary) -> void:
 	player.position = data.position
 	player.velocity = data.get("velocity", Vector2.ZERO)
 	player.facing = int(data.get("facing", player.get("facing", 1)))
-	player.pose = int(data.get("pose", player.get("pose", 0)))
+	player.pose = int(data.get("pose", player.get("pose", 0)))	
+	player.reserved_enemy_approach_target = data.get("reserved_enemy_approach_target", Vector2.INF)
 	player.sequence = int(data.get("sequence", player.get("sequence", 0)))
 
 	server_manager.remote_players[client_id] = player
@@ -304,7 +307,8 @@ func _handle_stop_player(client_id: int, data: Dictionary) -> void:
 	player.position = data.position
 	player.velocity = Vector2.ZERO
 	player.facing = int(data.get("facing", player.get("facing", 1)))
-	player.pose = int(data.get("pose", player.get("pose", 0)))
+	player.pose = int(data.get("pose", player.get("pose", 0)))	
+	player.reserved_enemy_approach_target = data.get("reserved_enemy_approach_target", Vector2.INF)
 	player.sequence = int(data.get("sequence", player.get("sequence", 0)))
 
 	server_manager.remote_players[client_id] = player
@@ -347,6 +351,7 @@ func _broadcast_remote_move(client_id: int, player: Dictionary, stopped: bool, s
 			"velocity": player.get("velocity", Vector2.ZERO),
 			"facing": player.get("facing", 1),
 			"pose": player.get("pose", 0),
+			"reserved_enemy_approach_target": player.get("reserved_enemy_approach_target", Vector2.INF),
 			"sequence": player.get("sequence", 0),
 			"server_time": server_time,
 			"stopped": stopped,
@@ -1380,6 +1385,7 @@ func handle_client_packet(data: Dictionary) -> void:
 					int(data.get("pose", 0)),
 					int(data.get("sequence", 0)),
 					bool(data.get("stopped", false)),
+					data.get("reserved_enemy_approach_target", Vector2.INF),
 				)
 			else:
 				SceneManager.remove_remote_player(int(data.get("id", 0)))
@@ -1435,6 +1441,7 @@ func _apply_client_sync(data: Dictionary) -> void:
 			int(p.get("pose", 0)),
 			int(p.get("sequence", 0)),
 			bool(p.get("stopped", false)),
+			p.get("reserved_enemy_approach_target", Vector2.INF),
 		)
 
 

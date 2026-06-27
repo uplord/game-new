@@ -23,6 +23,7 @@ var initial_facing := 1
 var body_start_scale := Vector2.ZERO
 var animation_state: AnimationNodeStateMachinePlayback
 var current_pose: int = PlayerUtil.PlayerPose.IDLE
+var reserved_enemy_approach_target := Vector2.INF
 
 
 func _ready() -> void:
@@ -71,7 +72,8 @@ func set_remote_state(
 		sequence: int = -1,
 		stopped: bool = false,
 		pose: int = PlayerUtil.PlayerPose.IDLE,
-		network_facing: int = 0
+		network_facing: int = 0,
+		reserved_approach_target: Vector2 = Vector2.INF
 	) -> void:
 	if sequence >= 0:
 		if sequence <= last_sequence:
@@ -83,6 +85,7 @@ func set_remote_state(
 	var clean_velocity := vel
 	var snapshot_stopped := stopped or clean_velocity.length() <= STOP_VELOCITY_EPSILON
 	server_pose = pose
+	reserved_enemy_approach_target = reserved_approach_target
 
 	if snapshot_stopped:
 		clean_velocity = Vector2.ZERO
@@ -174,7 +177,11 @@ func _get_interpolated_position() -> Vector2:
 
 
 func set_target_position(pos: Vector2) -> void:
-	set_remote_state(pos, Vector2.ZERO, -1, true, PlayerUtil.PlayerPose.IDLE, facing)
+	set_remote_state(pos, Vector2.ZERO, -1, true, PlayerUtil.PlayerPose.IDLE, facing, Vector2.INF)
+
+
+func get_reserved_enemy_approach_target() -> Vector2:
+	return reserved_enemy_approach_target
 
 
 func _update_visual_pose(display_velocity: Vector2) -> void:
