@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://ghe3w2p1r3w1"]
+
+[ext_resource type="Script" uid="uid://dhpvgt6thq2k2" path="res://entities/teleports/teleport.gd" id="1_vbfdf"]
+[ext_resource type="Texture2D" uid="uid://c7vsrw21o7kk8" path="res://entities/teleports/art/Down.png" id="2_mb4rj"]
+
+[node name="Teleport" type="Marker2D" unique_id=535956278]
+script = ExtResource("1_vbfdf")
+
+[node name="Direction" type="Sprite2D" parent="." unique_id=1476670833]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_mb4rj")

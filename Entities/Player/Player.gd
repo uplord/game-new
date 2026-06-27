@@ -25,7 +25,7 @@ const HOLD_TARGET_CHANGE_DISTANCE := 6.0
 const CLICK_STOP_DISTANCE := 8.0
 
 const ENGAGEMENT_PADDING := 48.0
-const MIN_ENEMY_APPROACH_DISTANCE := 128.0
+const MIN_ENEMY_APPROACH_DISTANCE := 64.0
 const ENEMY_DISTANCE_TOLERANCE := 8.0
 const ENEMY_TOO_CLOSE_TOLERANCE := 12.0
 
@@ -56,9 +56,12 @@ var movement_sequence := 0
 
 var prev_pose: PlayerPose = PlayerPose.IDLE
 var approach_enemy: Node2D = null
-var enemy_approach_tried_alternate := false
+var enemy_approach_candidate_points: Array[Vector2] = []
+var enemy_approach_candidate_index := 0
 var enemy_approach_direction_away := Vector2.ZERO
 var attacking_pose_active := false
+var active_teleport_trigger_key := ""
+
 
 
 func _ready() -> void:
@@ -89,9 +92,30 @@ func _ready() -> void:
 
 	animation_state.travel("Idle")
 
-	camera_controller = game.get_node("CameraManager")
+	_refresh_camera_controller()
 	body_start_scale = body.scale
 
+
+func _refresh_camera_controller() -> void:
+	camera_controller = game.get_node_or_null("CameraManager")
+
+
+func _apply_arrival_camera_facing() -> void:
+	_refresh_camera_controller()
+
+	if camera_controller == null or not is_instance_valid(camera_controller):
+		return
+
+	# A teleport target's left/right direction should immediately frame the
+	# player on the opposite side of the screen, the same way normal
+	# movement look-ahead does. Snapping avoids the camera easing from the
+	# previous scene's offset after the map/scene swap.
+	var camera_dir := float(last_facing)
+
+	if camera_controller.has_method("snap_look_ahead_direction"):
+		camera_controller.snap_look_ahead_direction(camera_dir)
+	elif camera_controller.has_method("set_look_ahead_direction"):
+		camera_controller.set_look_ahead_direction(camera_dir)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if movement_locked:
@@ -172,6 +196,7 @@ func _physics_process(_delta: float) -> void:
 	_update_movement_state(prev_pos)
 	_send_position_if_needed()
 	_update_camera_look_ahead()
+	_check_teleports()
 
 
 func _get_movement_input() -> Vector2:
@@ -188,8 +213,7 @@ func _get_movement_input() -> Vector2:
 	if keyboard_input != Vector2.ZERO:
 		_clear_enemy_target()
 		approach_enemy = null
-		enemy_approach_tried_alternate = false
-		enemy_approach_direction_away = Vector2.ZERO
+		_reset_enemy_approach_candidates()
 		mouse_mode = MouseMode.NONE
 		follow_moving = false
 		return keyboard_input
@@ -217,8 +241,7 @@ func _get_click_move_input() -> Vector2:
 			_focus_camera_on_enemy(approach_enemy)
 
 		approach_enemy = null
-		enemy_approach_tried_alternate = false
-		enemy_approach_direction_away = Vector2.ZERO
+		_reset_enemy_approach_candidates()
 		_send_stop()
 		return Vector2.ZERO
 
@@ -252,6 +275,10 @@ func _on_click() -> void:
 			_clear_enemy_target()
 		return
 
+	if _is_mouse_over_player():
+		_swap_facing_direction()
+		return
+
 	var new_target := _get_map_mouse_position()
 
 	if position.distance_squared_to(new_target) < MIN_CLICK_DISTANCE * MIN_CLICK_DISTANCE:
@@ -259,8 +286,7 @@ func _on_click() -> void:
 
 	_clear_enemy_target()
 	approach_enemy = null
-	enemy_approach_tried_alternate = false
-	enemy_approach_direction_away = Vector2.ZERO
+	_reset_enemy_approach_candidates()
 	click_target = new_target
 	mouse_mode = MouseMode.CLICK_MOVE
 	follow_moving = false
@@ -274,8 +300,7 @@ func _on_click() -> void:
 func _on_hold_start() -> void:
 	_clear_enemy_target()
 	approach_enemy = null
-	enemy_approach_tried_alternate = false
-	enemy_approach_direction_away = Vector2.ZERO
+	_reset_enemy_approach_candidates()
 	click_target = Vector2.ZERO
 	mouse_mode = MouseMode.HOLD_FOLLOW
 	follow_moving = false
@@ -297,8 +322,116 @@ func _on_hold_release() -> void:
 	_send_stop()
 
 
-func move_close_to_enemy(enemy: Node) -> void:
-	_move_close_to_enemy(enemy)
+
+# --------------------------------------------------
+# TELEPORTS
+# --------------------------------------------------
+func _check_teleports() -> void:
+	if movement_locked:
+		return
+	if SceneManager == null:
+		return
+
+	var teleports_parent := get_tree().root.get_node_or_null("Game/Map/Scene/Teleports")
+	if teleports_parent == null:
+		active_teleport_trigger_key = ""
+		return
+
+	var standing_on_teleport := false
+
+	for teleport in teleports_parent.get_children():
+		if not (teleport is Marker2D):
+			continue
+
+		var trigger_radius := 48.0
+		var radius_value = teleport.get("trigger_radius")
+		if radius_value != null:
+			trigger_radius = float(radius_value)
+		var distance_sq := global_position.distance_squared_to(teleport.global_position)
+		var trigger_sq := trigger_radius * trigger_radius
+		var lock_key := SceneManager.make_teleport_lock_key(
+			SceneManager.current_map,
+			SceneManager.current_scene,
+			str(teleport.name)
+		)
+
+		if distance_sq > trigger_sq:
+			if active_teleport_trigger_key == lock_key:
+				active_teleport_trigger_key = ""
+			if SceneManager.get_teleport_lock_key() == lock_key:
+				SceneManager.clear_teleport_lock_if_matches(lock_key)
+			continue
+
+		standing_on_teleport = true
+
+		# This prevents an instant return teleport after arriving on the target
+		# marker. The player must leave this marker and step back onto it first.
+		if SceneManager.get_teleport_lock_key() == lock_key:
+			return
+
+		# This prevents repeatedly firing the same marker every physics frame while
+		# the player remains inside its trigger radius.
+		if active_teleport_trigger_key == lock_key:
+			return
+
+		_try_use_teleport(teleport, lock_key)
+		return
+
+	if not standing_on_teleport:
+		active_teleport_trigger_key = ""
+
+
+func _try_use_teleport(teleport: Node, lock_key: String) -> void:
+	var target_map := str(teleport.get("target_map"))
+	var target_scene := str(teleport.get("target_scene"))
+	var target_teleport := str(teleport.get("target_teleport"))
+
+	if target_map == "" or target_scene == "" or target_teleport == "":
+		return
+
+	active_teleport_trigger_key = lock_key
+	cancel_mouse_movement(false)
+
+	var target_facing := 1
+	if teleport.has_method("get_target_facing"):
+		target_facing = int(teleport.get_target_facing())
+	else:
+		var target_direction = teleport.get("target_direction")
+		if target_direction is Vector2:
+			target_facing = -1 if target_direction.x < 0.0 else 1
+		else:
+			target_facing = -1 if int(target_direction) < 0 else 1
+
+	ServerManager.send_to_server({
+		"type": "c_teleport_player",
+		"from_map": SceneManager.current_map,
+		"from_scene": SceneManager.current_scene,
+		"from_teleport": str(teleport.name),
+		"target_map": target_map,
+		"target_scene": target_scene,
+		"target_teleport": target_teleport,
+		"target_facing": target_facing,
+	})
+
+
+func set_facing_direction(direction: int) -> void:
+	last_facing = -1 if direction < 0 else 1
+	facing = last_facing
+	_apply_facing()
+	_send_stop()
+
+
+func move_close_to_enemy(enemy: Node, force_reposition: bool = false) -> void:
+	_move_close_to_enemy(enemy, force_reposition)
+
+
+
+
+func is_enemy_approach_in_progress(enemy: Node) -> bool:
+	return enemy != null \
+		and is_instance_valid(enemy) \
+		and approach_enemy == enemy \
+		and mouse_mode == MouseMode.CLICK_MOVE
 
 
 func is_close_to_enemy(enemy: Node) -> bool:
@@ -317,7 +450,7 @@ func is_close_to_enemy(enemy: Node) -> bool:
 	return current_distance <= desired_distance + ENEMY_DISTANCE_TOLERANCE
 
 
-func _move_close_to_enemy(enemy: Node) -> void:
+func _move_close_to_enemy(enemy: Node, force_reposition: bool = false) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if not (enemy is Node2D):
@@ -332,23 +465,30 @@ func _move_close_to_enemy(enemy: Node) -> void:
 
 	_face_global_position(enemy_position)
 
-	var direction_away_from_enemy := _get_horizontal_enemy_approach_direction(enemy_position)
+	var preferred_target := _get_best_enemy_approach_target(approach_enemy, desired_distance)
 
-	# If the player is already at a good engagement distance, start/hold the
-	# target normally. If they are too close, first step away to the preferred
-	# distance instead of fighting nose-to-nose.
-	if is_close_to_enemy(approach_enemy) and not _is_too_close_to_enemy(approach_enemy):
+	# Normal targeting can stop if the player is already in a usable engagement
+	# range. Battle attack buttons pass force_reposition=true so that, after the
+	# player has backed away or ended up on the wrong/loose side, pressing attack
+	# always tries to run them back to the closest free approach point before fighting.
+	if not force_reposition and is_close_to_enemy(approach_enemy) and not _is_too_close_to_enemy(approach_enemy):
 		mouse_mode = MouseMode.NONE
 		click_target = Vector2.ZERO
-		enemy_approach_tried_alternate = false
-		enemy_approach_direction_away = Vector2.ZERO
+		_reset_enemy_approach_candidates()
 		_focus_camera_on_enemy(approach_enemy)
 		_send_stop()
 		return
 
-	enemy_approach_tried_alternate = false
-	enemy_approach_direction_away = direction_away_from_enemy
-	_set_enemy_approach_target(_get_enemy_side_target(enemy_position, enemy_approach_direction_away, desired_distance))
+	if force_reposition and global_position.distance_squared_to(preferred_target) <= CLICK_STOP_DISTANCE * CLICK_STOP_DISTANCE:
+		mouse_mode = MouseMode.NONE
+		click_target = Vector2.ZERO
+		_reset_enemy_approach_candidates()
+		_face_global_position(enemy_position)
+		_send_stop()
+		return
+
+	enemy_approach_direction_away = (preferred_target - enemy_position).normalized()
+	_set_enemy_approach_target(preferred_target)
 
 
 func _is_too_close_to_enemy(enemy: Node) -> bool:
@@ -365,24 +505,169 @@ func _is_too_close_to_enemy(enemy: Node) -> bool:
 
 
 func _try_enemy_alternate_position() -> bool:
-	if enemy_approach_tried_alternate:
-		return false
 	if approach_enemy == null or not is_instance_valid(approach_enemy):
 		return false
 
-	var enemy_position := approach_enemy.global_position
-	var desired_distance := get_enemy_approach_distance(self, approach_enemy)
+	if enemy_approach_candidate_points.is_empty():
+		var desired_distance := get_enemy_approach_distance(self, approach_enemy)
+		_build_enemy_approach_candidates(approach_enemy, desired_distance)
 
-	# Use the side chosen when the enemy was first targeted. Previously this was
-	# recalculated from the player's current blocked position, so after the
-	# player slid around collision the "opposite" side could be wrong.
-	var direction_away_from_enemy := enemy_approach_direction_away
-	if direction_away_from_enemy == Vector2.ZERO:
-		direction_away_from_enemy = _get_horizontal_enemy_approach_direction(enemy_position)
+	enemy_approach_candidate_index += 1
 
-	enemy_approach_tried_alternate = true
-	_set_enemy_approach_target(_get_enemy_side_target(enemy_position, -direction_away_from_enemy, desired_distance))
-	return true
+	while enemy_approach_candidate_index < enemy_approach_candidate_points.size():
+		var next_target := enemy_approach_candidate_points[enemy_approach_candidate_index]
+		if not _is_enemy_approach_point_occupied(next_target, approach_enemy):
+			enemy_approach_direction_away = (next_target - approach_enemy.global_position).normalized()
+			_set_enemy_approach_target(next_target)
+			return true
+
+		enemy_approach_candidate_index += 1
+
+	return false
+
+
+func _reset_enemy_approach_candidates() -> void:
+	enemy_approach_candidate_points.clear()
+	enemy_approach_candidate_index = 0
+	enemy_approach_direction_away = Vector2.ZERO
+
+
+func _get_best_enemy_approach_target(enemy: Node2D, desired_distance: float) -> Vector2:
+	_build_enemy_approach_candidates(enemy, desired_distance)
+
+	print("enemy_approach_candidate_points", enemy_approach_candidate_points)
+	for i in range(enemy_approach_candidate_points.size()):
+		var target := enemy_approach_candidate_points[i]
+		if not _is_enemy_approach_point_occupied(target, enemy):
+			enemy_approach_candidate_index = i
+			return target
+
+	enemy_approach_candidate_index = 0
+	if enemy_approach_candidate_points.is_empty():
+		return _get_enemy_side_target(enemy.global_position, _get_horizontal_enemy_approach_direction(enemy.global_position), desired_distance)
+
+	return enemy_approach_candidate_points[0]
+
+
+func _build_enemy_approach_candidates(enemy: Node2D, desired_distance: float) -> void:
+	enemy_approach_candidate_points.clear()
+	enemy_approach_candidate_index = 0
+
+	var directions := _get_enemy_approach_directions(enemy)
+	var enemy_position := enemy.global_position
+
+	for direction in directions:
+		if direction.length_squared() <= 0.001:
+			continue
+
+		# Directions define the generated/manual slots; distance is still controlled by
+		# get_enemy_approach_distance(), which includes MIN_ENEMY_APPROACH_DISTANCE.
+		enemy_approach_candidate_points.append(enemy_position + direction.normalized() * desired_distance)
+
+	enemy_approach_candidate_points.sort_custom(Callable(self, "_sort_enemy_approach_points_by_player_distance"))
+
+
+func _sort_enemy_approach_points_by_player_distance(a: Vector2, b: Vector2) -> bool:
+	return global_position.distance_squared_to(a) < global_position.distance_squared_to(b)
+
+
+func _get_enemy_approach_directions(enemy: Node2D) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	var exported_directions = enemy.get("approach_point_directions")
+
+	# Manual directions win if you set them on the Enemy.
+	# Leave approach_point_directions empty to use approach_point_count instead.
+	if exported_directions is PackedVector2Array:
+		for direction in exported_directions:
+			if direction is Vector2 and direction.length_squared() > 0.001:
+				result.append(direction)
+
+	if not result.is_empty():
+		return result
+
+	var point_count := 8
+	var point_count_value = enemy.get("approach_point_count")
+	if point_count_value is int:
+		point_count = point_count_value
+	elif point_count_value is float:
+		point_count = int(point_count_value)
+	point_count = clampi(point_count, 2, 32)
+
+	var arc_degrees := 360.0
+	var arc_degrees_value = enemy.get("approach_point_arc_degrees")
+	if arc_degrees_value is float or arc_degrees_value is int:
+		arc_degrees = float(arc_degrees_value)
+	arc_degrees = clampf(arc_degrees, 45.0, 360.0)
+
+	var offset_degrees := 0.0
+	var offset_degrees_value = enemy.get("approach_point_arc_offset_degrees")
+	if offset_degrees_value is float or offset_degrees_value is int:
+		offset_degrees = float(offset_degrees_value)
+
+	var step_degrees := 0.0
+	if point_count > 1:
+		step_degrees = 360.0 / float(point_count)
+
+	if arc_degrees < 359.99 and point_count > 1:
+		step_degrees = arc_degrees / float(point_count - 1)
+		offset_degrees -= arc_degrees * 0.5
+
+	for i in range(point_count):
+		var angle := deg_to_rad(offset_degrees + step_degrees * float(i))
+		result.append(Vector2(cos(angle), sin(angle)))
+
+	return result
+
+
+func _is_enemy_approach_point_occupied(target_global_position: Vector2, enemy: Node2D) -> bool:
+	var occupancy_radius = max(get_collision_width(self), MIN_ENEMY_APPROACH_DISTANCE * 0.5)
+	var occupancy_radius_sq = occupancy_radius * occupancy_radius
+
+	for other_player in _get_other_visible_players_for_enemy_slots():
+		if other_player == null or not is_instance_valid(other_player):
+			continue
+		if other_player == self:
+			continue
+		if not (other_player is Node2D):
+			continue
+
+		var other_node := other_player as Node2D
+
+		# Only count players who are already close enough to be occupying one of this
+		# enemy's slots. Players elsewhere in the scene should not reserve a point.
+		if other_node.global_position.distance_to(enemy.global_position) > get_enemy_approach_distance(other_node, enemy) + occupancy_radius:
+			continue
+
+		if other_node.global_position.distance_squared_to(target_global_position) <= occupancy_radius_sq:
+			return true
+
+	return false
+
+
+func _get_other_visible_players_for_enemy_slots() -> Array[Node]:
+	var result: Array[Node] = []
+	var scene_root := get_tree().root.get_node_or_null("Game/Map/Scene")
+	if scene_root == null:
+		scene_root = get_parent()
+	if scene_root == null:
+		return result
+
+	_collect_player_slot_nodes(scene_root, result)
+	return result
+
+
+func _collect_player_slot_nodes(node: Node, result: Array[Node]) -> void:
+	if node != self and node is Node2D:
+		var node_name := str(node.name).to_lower()
+		var script = node.get_script()
+		var script_path := str(script.resource_path).to_lower() if script != null else ""
+
+		if node_name.contains("remoteplayer") or script_path.ends_with("remote_player.gd") or node is Player:
+			if not (node is CanvasItem) or (node as CanvasItem).visible:
+				result.append(node)
+
+	for child in node.get_children():
+		_collect_player_slot_nodes(child, result)
 
 
 func _get_horizontal_enemy_approach_direction(enemy_position: Vector2) -> Vector2:
@@ -417,10 +702,9 @@ func _set_enemy_approach_target(target_global_position: Vector2) -> void:
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
 
-	# When the first side is blocked and we move to the alternate side, the
-	# movement direction can be away from the enemy. Keep the character aimed at
-	# the enemy instead of letting the movement direction choose the facing.
-	_face_enemy_target_if_active()
+	# Face the direction of the selected movement target before the first movement
+	# packet is sent. The player will turn back toward the enemy after arriving.
+	_face_click_target_direction()
 	_send_move(click_target)
 
 
@@ -434,8 +718,7 @@ func _stop_enemy_approach_if_close() -> void:
 	_face_global_position(approach_enemy.global_position)
 	_focus_camera_on_enemy(approach_enemy)
 	approach_enemy = null
-	enemy_approach_tried_alternate = false
-	enemy_approach_direction_away = Vector2.ZERO
+	_reset_enemy_approach_candidates()
 	_send_stop()
 
 
@@ -485,13 +768,46 @@ func cancel_mouse_movement(reset_camera: bool = true) -> void:
 	follow_moving = false
 	click_target = Vector2.ZERO
 	approach_enemy = null
-	enemy_approach_tried_alternate = false
-	enemy_approach_direction_away = Vector2.ZERO
+	_reset_enemy_approach_candidates()
 	last_sent_hold_target = Vector2.INF
 	last_hold_send_time = 0.0
 
 	if reset_camera and camera_controller != null and camera_controller.has_method("reset_to_default_camera"):
 		camera_controller.reset_to_default_camera()
+
+	_send_stop()
+
+
+func reset_after_area_change(new_position: Vector2, new_facing: int = 1, arrival_lock_key: String = "") -> void:
+	# Scene/map changes reuse the same Player node. Without a full movement reset,
+	# old click targets, hold-follow state, velocity and send throttles can carry
+	# across for one or more physics frames and make the player appear to jolt or
+	# run briefly after landing.
+	movement_locked = true
+	global_position = new_position
+	position = new_position
+	velocity = Vector2.ZERO
+	actually_moving = false
+	was_moving_last_frame = false
+	mouse_press_active = false
+	hold_started = false
+	follow_moving = false
+	mouse_mode = MouseMode.NONE
+	click_target = Vector2.ZERO
+	approach_enemy = null
+	_reset_enemy_approach_candidates()
+	attacking_pose_active = false
+	last_sent_hold_target = Vector2.INF
+	last_hold_send_time = 0.0
+	last_position_send_time = 0.0
+	last_sent_position = Vector2.INF
+	active_teleport_trigger_key = arrival_lock_key
+
+	set_facing_direction(new_facing)
+	set_pose(PlayerPose.IDLE)
+	prev_pose = PlayerPose.IDLE
+
+	_apply_arrival_camera_facing()
 
 	_send_stop()
 
@@ -522,7 +838,7 @@ func _update_movement_state(prev_pos: Vector2) -> void:
 
 	if actually_moving:
 		desired_pose = PlayerPose.RUNNING
-	elif _has_active_enemy_target() or attacking_pose_active:
+	elif _should_hold_fight_pose():
 		desired_pose = PlayerPose.FIGHT
 	else:
 		desired_pose = PlayerPose.IDLE
@@ -532,12 +848,39 @@ func _update_movement_state(prev_pos: Vector2) -> void:
 
 
 func _has_active_enemy_target() -> bool:
-	var ui := game.get_node_or_null("UI") if game != null else null
-	if ui == null:
+	return _get_active_enemy_target() != null
+
+
+func _should_hold_fight_pose() -> bool:
+	if attacking_pose_active:
+		return true
+
+	var enemy := _get_active_enemy_target()
+	if enemy == null:
 		return false
 
+	# Keeping an enemy selected should not force the battle stance. If the
+	# player manually backs away during battle, they should return to idle and
+	# keep the direction they moved in. The fight pose comes back only after an
+	# attack sends them back into the valid engagement position.
+	return is_close_to_enemy(enemy) and not _is_too_close_to_enemy(enemy)
+
+
+func _get_active_enemy_target() -> Node2D:
+	var ui := game.get_node_or_null("UI") if game != null else null
+	if ui == null:
+		return null
+
 	var enemy = ui.current_enemy_target
-	return enemy != null and is_instance_valid(enemy) and enemy.visible
+	if enemy != null and is_instance_valid(enemy) and enemy.visible and enemy is Node2D:
+		return enemy as Node2D
+
+	return null
+
+
+func _is_player_in_battle() -> bool:
+	var ui := game.get_node_or_null("UI") if game != null else null
+	return ui != null and ui.has_method("is_player_in_battle") and ui.is_player_in_battle()
 
 
 func set_pose(pose: PlayerPose) -> void:
@@ -607,7 +950,45 @@ func _update_camera_look_ahead() -> void:
 	camera_controller.set_look_ahead_direction(clamp(horizontal_amount, -1.0, 1.0))
 
 
+func _is_enemy_approach_moving() -> bool:
+	return approach_enemy != null \
+		and is_instance_valid(approach_enemy) \
+		and mouse_mode == MouseMode.CLICK_MOVE
+
+
+func _face_click_target_direction() -> bool:
+	if mouse_mode != MouseMode.CLICK_MOVE:
+		return false
+
+	var to_target := click_target - position
+	if abs(to_target.x) <= MOVE_THRESHOLD:
+		return false
+
+	last_facing = sign(to_target.x)
+	facing = last_facing
+	_apply_facing()
+	return true
+
+
 func _update_facing_from_movement(movement_delta: Vector2) -> void:
+	# Any time the player is physically moving, face the real travel direction.
+	# This fixes battle movement where backing away from a targeted enemy could
+	# keep the player visually locked toward the enemy and make them run backward.
+	if abs(movement_delta.x) > 2.0:
+		last_facing = sign(movement_delta.x)
+		facing = last_facing
+		_apply_facing()
+		return
+
+	# While auto-approaching a targeted enemy, fall back to the chosen click target
+	# until movement_delta becomes large enough to show the real direction.
+	if _is_enemy_approach_moving():
+		_face_click_target_direction()
+		facing = last_facing
+		_apply_facing()
+		return
+
+	# Once stopped in battle, face the selected enemy again.
 	if _face_enemy_target_if_active():
 		return
 
@@ -615,15 +996,17 @@ func _update_facing_from_movement(movement_delta: Vector2) -> void:
 		var screen_dir := _get_screen_mouse_direction()
 		if abs(screen_dir.x) > FOLLOW_STOP_DISTANCE:
 			last_facing = sign(screen_dir.x)
-	else:
-		if abs(movement_delta.x) > 2.0:
-			last_facing = sign(movement_delta.x)
 
 	facing = last_facing
 	_apply_facing()
 
 
 func _update_facing_towards_approach_enemy() -> void:
+	# Do not override movement-facing while the player is still running to the
+	# selected engagement point. Once movement stops, the stop path faces the enemy.
+	if _is_enemy_approach_moving():
+		return
+
 	_face_enemy_target_if_active()
 
 
@@ -633,12 +1016,15 @@ func _face_enemy_target_if_active() -> bool:
 	if approach_enemy != null and is_instance_valid(approach_enemy):
 		enemy = approach_enemy
 	else:
-		var ui := game.get_node_or_null("UI") if game != null else null
-		var current_target = ui.current_enemy_target if ui != null else null
-		if current_target != null and is_instance_valid(current_target) and current_target is Node2D:
-			enemy = current_target as Node2D
+		enemy = _get_active_enemy_target()
 
 	if enemy == null:
+		return false
+
+	# Do not snap the player back to facing the enemy after they manually move
+	# away in battle. Keep their last movement-facing direction until they press
+	# another attack/target action, which calls move_close_to_enemy() again.
+	if approach_enemy == null and (not is_close_to_enemy(enemy) or _is_too_close_to_enemy(enemy)):
 		return false
 
 	_face_global_position(enemy.global_position)
@@ -658,6 +1044,39 @@ func _face_global_position(target_global_position: Vector2) -> void:
 func _apply_facing() -> void:
 	if body_start_scale != Vector2.ZERO:
 		body.scale.x = body_start_scale.x * facing
+
+
+func _swap_facing_direction() -> void:
+	last_facing *= -1
+	if last_facing == 0:
+		last_facing = -1
+	facing = last_facing
+	_apply_facing()
+	_send_stop()
+
+
+func _is_mouse_over_player() -> bool:
+	var mouse_pos := get_global_mouse_position()
+	var shape_node := find_child("CollisionShape2D", true, false) as CollisionShape2D
+
+	if shape_node == null or shape_node.shape == null:
+		return global_position.distance_squared_to(mouse_pos) <= 64.0 * 64.0
+
+	var local_mouse := shape_node.to_local(mouse_pos)
+	var shape := shape_node.shape
+
+	if shape is RectangleShape2D:
+		var half_size = shape.size * 0.5
+		return abs(local_mouse.x) <= half_size.x and abs(local_mouse.y) <= half_size.y
+
+	if shape is CircleShape2D:
+		return local_mouse.length_squared() <= shape.radius * shape.radius
+
+	if shape is CapsuleShape2D:
+		var half_height = max(shape.height * 0.5, shape.radius)
+		return abs(local_mouse.x) <= shape.radius and abs(local_mouse.y) <= half_height
+
+	return global_position.distance_squared_to(mouse_pos) <= 64.0 * 64.0
 
 
 func _get_move_speed() -> float:
@@ -728,9 +1147,8 @@ func _focus_camera_on_enemy(_enemy: Node2D) -> void:
 
 
 func _send_position_if_needed() -> void:
-	_face_enemy_target_if_active()
-
 	if not actually_moving:
+		_face_enemy_target_if_active()
 		if was_moving_last_frame:
 			was_moving_last_frame = false
 			last_sent_position = Vector2.INF
@@ -756,11 +1174,15 @@ func _send_position_if_needed() -> void:
 		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
+		"instance": SceneManager.current_instance,
 	})
 
 
 func _send_move(_target: Vector2) -> void:
-	_face_enemy_target_if_active()
+	if _is_enemy_approach_moving():
+		_face_click_target_direction()
+	else:
+		_face_enemy_target_if_active()
 
 	ServerManager.send_to_server({
 		"type": "c_move_player",
@@ -772,6 +1194,7 @@ func _send_move(_target: Vector2) -> void:
 		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
+		"instance": SceneManager.current_instance,
 	})
 
 
@@ -788,4 +1211,5 @@ func _send_stop() -> void:
 		"pose": int(prev_pose),
 		"map": SceneManager.current_map,
 		"scene": SceneManager.current_scene,
+		"instance": SceneManager.current_instance,
 	})

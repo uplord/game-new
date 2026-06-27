@@ -73,6 +73,9 @@ func _make_sync_player_data(player: Dictionary) -> Dictionary:
 	var velocity: Vector2 = player.get("velocity", Vector2.ZERO)
 	return {
 		"id": player.get("id", 0),
+		"map": player.get("map", SceneManager.current_map),
+		"scene": player.get("scene", SceneManager.current_scene),
+		"instance": int(player.get("instance", SceneManager.current_instance)),
 		"position": player.get("position", Vector2.ZERO),
 		"velocity": velocity,
 		"direction": player.get("direction", Vector2.RIGHT),
@@ -132,6 +135,33 @@ func _validate_move(client_id: int, data: Dictionary) -> bool:
 	return true
 
 
+func _is_client_movement_for_current_area(client_id: int, data: Dictionary) -> bool:
+	var player: Dictionary = server_manager.remote_players.get(client_id, {})
+	if player.is_empty():
+		return false
+
+	# Movement sent before a teleport can arrive after the reliable teleport packet.
+	# If we accept it, it overwrites the player's new server position and other
+	# clients briefly spawn them at the old room position before the next update.
+	if data.has("map") and str(data.get("map", "")) != str(player.get("map", "")):
+		return false
+	if data.has("scene") and str(data.get("scene", "")) != str(player.get("scene", "")):
+		return false
+	if data.has("instance") and int(data.get("instance", -1)) != int(player.get("instance", -1)):
+		return false
+
+	return true
+
+
+func _is_newer_client_sequence(player: Dictionary, data: Dictionary) -> bool:
+	if not data.has("sequence"):
+		return true
+
+	var incoming_sequence := int(data.get("sequence", 0))
+	var current_sequence := int(player.get("sequence", -1))
+	return incoming_sequence > current_sequence
+
+
 # --------------------------------------------------
 # SERVER PACKETS
 # --------------------------------------------------
@@ -174,7 +204,7 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 			_handle_reset_player_battle(client_id)
 
 		"c_teleport_player":
-			logger.info("Client teleport: %d" % client_id)
+			_handle_teleport_player(client_id, data)
 
 		"c_request_sync":
 			_handle_request_sync(client_id)
@@ -209,7 +239,7 @@ func _handle_spawn_player(client_id: int) -> void:
 	}
 
 	server_manager.remote_players[client_id] = player_data
-	battle_players[client_id] = BattleCalculator.create_player_battle_state()
+	_get_or_create_player_battle_state(client_id)
 
 	server_manager.add_to_instance(client_id, player_data)
 
@@ -231,6 +261,12 @@ func _handle_move_player(client_id: int, data: Dictionary) -> void:
 
 	var player = server_manager.remote_players.get(client_id, null)
 	if player == null:
+		return
+
+	if not _is_client_movement_for_current_area(client_id, data):
+		return
+
+	if not _is_newer_client_sequence(player, data):
 		return
 
 	player.position = data.position
@@ -259,6 +295,12 @@ func _handle_stop_player(client_id: int, data: Dictionary) -> void:
 	if player == null:
 		return
 
+	if not _is_client_movement_for_current_area(client_id, data):
+		return
+
+	if not _is_newer_client_sequence(player, data):
+		return
+
 	player.position = data.position
 	player.velocity = Vector2.ZERO
 	player.facing = int(data.get("facing", player.get("facing", 1)))
@@ -272,6 +314,22 @@ func _handle_stop_player(client_id: int, data: Dictionary) -> void:
 	_broadcast_remote_move(client_id, player, true, stop_time)
 
 
+func _broadcast_remote_remove(client_id: int, map_name: String, scene_name: String, instance: int) -> void:
+	var players_in_instance = instance_manager.get_instance_players(map_name, scene_name, instance)
+
+	for target_client_id in players_in_instance:
+		if target_client_id == client_id:
+			continue
+
+		server_manager.send_to_client(target_client_id, {
+			"type": "s_remote_remove",
+			"id": client_id,
+			"map": map_name,
+			"scene": scene_name,
+			"instance": instance,
+		})
+
+
 func _broadcast_remote_move(client_id: int, player: Dictionary, stopped: bool, server_time: float) -> void:
 	var players_in_instance = instance_manager.get_instance_players(player.map, player.scene, player.instance)
 
@@ -282,6 +340,9 @@ func _broadcast_remote_move(client_id: int, player: Dictionary, stopped: bool, s
 		server_manager.send_to_client(target_client_id, {
 			"type": "s_remote_move",
 			"id": client_id,
+			"map": player.get("map", SceneManager.current_map),
+			"scene": player.get("scene", SceneManager.current_scene),
+			"instance": int(player.get("instance", SceneManager.current_instance)),
 			"position": player.position,
 			"velocity": player.get("velocity", Vector2.ZERO),
 			"facing": player.get("facing", 1),
@@ -290,6 +351,85 @@ func _broadcast_remote_move(client_id: int, player: Dictionary, stopped: bool, s
 			"server_time": server_time,
 			"stopped": stopped,
 		})
+
+
+func _handle_teleport_player(client_id: int, data: Dictionary) -> void:
+	var player: Dictionary = server_manager.remote_players.get(client_id, {})
+	if player.is_empty():
+		return
+
+	var old_map := str(player.get("map", SceneManager.current_map))
+	var old_scene := str(player.get("scene", SceneManager.current_scene))
+	var old_instance := int(player.get("instance", SceneManager.current_instance))
+
+	_broadcast_remote_remove(client_id, old_map, old_scene, old_instance)
+
+	var target_map := str(data.get("target_map", ""))
+	var target_scene := str(data.get("target_scene", ""))
+	var target_teleport := str(data.get("target_teleport", ""))
+	var target_facing := int(data.get("target_facing", 1))
+	if target_facing == 0:
+		target_facing = 1
+	target_facing = -1 if target_facing < 0 else 1
+
+	if target_map == "" or target_scene == "" or target_teleport == "":
+		return
+
+	# A teleport is a hard area change, even when it stays inside the same map.
+	# Clear this player's current enemy target and remove them from any enemy
+	# attacker lists so the old battle cannot continue in the new scene.
+	_exit_player_battle_for_area_change(client_id)
+
+	var target_position := instance_manager.resolve_teleport_position(target_map, target_scene, target_teleport)
+
+	var target_instance := old_instance
+	if target_map != old_map:
+		instance_manager.remove_player_from_instance(client_id, old_map, old_scene, old_instance)
+		server_manager.remove_from_instance(client_id, old_map, old_scene, old_instance)
+		target_instance = instance_manager.find_available_instance(target_map, target_scene)
+		if target_instance == -1:
+			instance_manager.add_player_to_instance(client_id, old_map, old_scene, old_instance)
+			server_manager.add_to_instance(client_id, player)
+			return
+	else:
+		instance_manager.remove_player_from_instance(client_id, old_map, old_scene, old_instance)
+		server_manager.remove_from_instance(client_id, old_map, old_scene, old_instance)
+
+	instance_manager.add_player_to_instance(client_id, target_map, target_scene, target_instance)
+
+	player.position = target_position
+	player.velocity = Vector2.ZERO
+	player.facing = target_facing
+	player.pose = 0
+	player.sequence = int(player.get("sequence", 0)) + 1
+	player.map = target_map
+	player.scene = target_scene
+	player.instance = target_instance
+
+	server_manager.remote_players[client_id] = player
+	server_manager.add_to_instance(client_id, player)
+
+	var battle_player := _get_or_create_player_battle_state(client_id)
+	battle_player.map = target_map
+	battle_player.scene = target_scene
+	battle_player.instance = target_instance
+	battle_players[client_id] = battle_player
+
+	server_manager.send_to_client(client_id, {
+		"type": "s_teleport_player",
+		"map": target_map,
+		"scene": target_scene,
+		"instance": target_instance,
+		"map_population": instance_manager.get_map_instance_population(target_map, target_instance),
+		"position": target_position,
+		"facing": target_facing,
+		"target_teleport": target_teleport,
+		"battle": _make_battle_state(client_id, ""),
+	})
+
+	sync_visibility_group(old_map, old_scene, old_instance)
+	sync_visibility_group(target_map, target_scene, target_instance)
+	logger.info("Client teleport: %d - %s/%s -> %s/%s" % [client_id, old_map, old_scene, target_map, target_scene])
 
 
 func _handle_request_sync(client_id: int) -> void:
@@ -315,6 +455,9 @@ func _handle_request_sync(client_id: int) -> void:
 	server_manager.send_to_client(client_id, {
 		"type": "s_request_sync",
 		"players": players,
+		"map": player.map,
+		"scene": player.scene,
+		"instance": player.instance,
 		"map_population": instance_manager.get_map_instance_population(player.map, player.instance)
 	})
 
@@ -335,10 +478,16 @@ func _update_battle_timers(delta: float) -> void:
 		var original_mp := float(player.get("mp", PLAYER_MAX_MP))
 		var original_effect_count: int = player.get("effects", []).size()
 		var original_effect_seconds := _effects_second_signature(player.get("effects", []))
+		var is_in_battle := players_in_battle.has(client_id)
 
-		player = BattleCalculator.process_effects(player)
-
-		if not players_in_battle.has(client_id):
+		if is_in_battle:
+			player = BattleCalculator.process_effects(player)
+		else:
+			# DOT/debuff effects are battle-only. If a player teleports or leaves
+			# battle, clear them before processing effects so a queued DOT tick
+			# cannot damage them after they arrive in the new scene.
+			player.effects = _remove_player_debuff_effects(player.get("effects", []))
+			player = BattleCalculator.process_effects(player)
 			player = BattleCalculator.regen_player_out_of_battle(player, delta)
 
 		battle_players[client_id] = player
@@ -442,6 +591,25 @@ func _get_players_in_battle() -> Dictionary:
 
 func _get_player_instance_data(client_id: int) -> Dictionary:
 	return server_manager.remote_players.get(client_id, {})
+
+
+func _get_or_create_player_battle_state(client_id: int) -> Dictionary:
+	var world_player := _get_player_instance_data(client_id)
+	var map := str(world_player.get("map", ""))
+	var scene := str(world_player.get("scene", ""))
+	var instance := int(world_player.get("instance", -1))
+
+	var player: Dictionary = battle_players.get(
+		client_id,
+		BattleCalculator.create_player_battle_state(map, scene, instance)
+	)
+
+	player.map = map
+	player.scene = scene
+	player.instance = instance
+
+	battle_players[client_id] = player
+	return player
 
 
 func _enemy_key_for_player(client_id: int, enemy_id: String) -> String:
@@ -580,8 +748,7 @@ func _reset_enemy_if_no_attackers(enemy_key: String, enemy: Dictionary) -> bool:
 
 
 func _make_battle_state(client_id: int, enemy_id: String = "") -> Dictionary:
-	var player = battle_players.get(client_id, BattleCalculator.create_player_battle_state())
-	battle_players[client_id] = player
+	var player := _get_or_create_player_battle_state(client_id)
 
 	var target_id := enemy_id if enemy_id != "" else str(player.get("target_enemy_id", ""))
 	var enemy := {}
@@ -595,6 +762,9 @@ func _make_battle_state(client_id: int, enemy_id: String = "") -> Dictionary:
 
 	return {
 		"player": {
+			"map": player.get("map", ""),
+			"scene": player.get("scene", ""),
+			"instance": player.get("instance", -1),
 			"hp": player.get("hp", PLAYER_MAX_HP),
 			"max_hp": player.get("max_hp", PLAYER_MAX_HP),
 			"mp": player.get("mp", PLAYER_MAX_MP),
@@ -665,7 +835,7 @@ func _broadcast_battle_state_to_enemy_instance(enemy: Dictionary) -> void:
 		if not server_manager.connected_clients.has(target_client_id):
 			continue
 
-		var player: Dictionary = battle_players.get(target_client_id, BattleCalculator.create_player_battle_state())
+		var player: Dictionary = _get_or_create_player_battle_state(target_client_id)
 
 		if str(player.get("target_enemy_id", "")) == enemy_id or enemy.get("attackers", []).has(target_client_id):
 			_send_battle_state(target_client_id)
@@ -692,8 +862,7 @@ func _broadcast_enemy_visibility(enemy: Dictionary, visible: bool) -> void:
 
 
 func _handle_select_enemy(client_id: int, data: Dictionary) -> void:
-	if not battle_players.has(client_id):
-		battle_players[client_id] = BattleCalculator.create_player_battle_state()
+	var player := _get_or_create_player_battle_state(client_id)
 
 	var enemy_id := str(data.get("enemy_id", ""))
 	if enemy_id == "":
@@ -702,7 +871,6 @@ func _handle_select_enemy(client_id: int, data: Dictionary) -> void:
 	var enemy_name := str(data.get("enemy_name", "Enemy"))
 	var enemy := _get_or_create_enemy_state(client_id, enemy_id, enemy_name, data)
 
-	var player = battle_players[client_id]
 	player.target_enemy_id = enemy_id
 	battle_players[client_id] = player
 
@@ -727,10 +895,7 @@ func _handle_use_skill(client_id: int, data: Dictionary) -> void:
 		_send_battle_error(client_id, "Unknown skill")
 		return
 
-	if not battle_players.has(client_id):
-		battle_players[client_id] = BattleCalculator.create_player_battle_state()
-
-	var player = battle_players[client_id]
+	var player := _get_or_create_player_battle_state(client_id)
 	player = BattleCalculator.process_effects(player)
 
 	if float(player.get("hp", PLAYER_MAX_HP)) <= 0.0:
@@ -875,6 +1040,36 @@ func _apply_enemy_action(attacking_client_id: int, enemy_id: String) -> bool:
 	return _apply_enemy_action_state(enemy_key, enemy)
 
 
+
+func _is_valid_enemy_attacker(enemy: Dictionary, client_id: int) -> bool:
+	if not server_manager.connected_clients.has(client_id):
+		return false
+
+	if not battle_players.has(client_id):
+		return false
+
+	var player_state: Dictionary = battle_players.get(client_id, {})
+
+	if float(player_state.get("hp", PLAYER_MAX_HP)) <= 0.0:
+		return false
+
+	# Teleporting/changing scene is a hard battle exit. This protects against
+	# any enemy action that was due on the same frame as the teleport by making
+	# sure the player is still targeting this enemy and still in the same area.
+	if str(player_state.get("target_enemy_id", "")) != str(enemy.get("id", "")):
+		return false
+
+	if str(player_state.get("map", SceneManager.current_map)) != str(enemy.get("map", SceneManager.current_map)):
+		return false
+
+	if str(player_state.get("scene", SceneManager.current_scene)) != str(enemy.get("scene", SceneManager.current_scene)):
+		return false
+
+	if int(player_state.get("instance", SceneManager.current_instance)) != int(enemy.get("instance", SceneManager.current_instance)):
+		return false
+
+	return true
+
 func _apply_enemy_action_state(enemy_key: String, enemy: Dictionary) -> bool:
 	if bool(enemy.get("defeated", false)) or float(enemy.get("hp", ENEMY_MAX_HP)) <= 0.0:
 		_mark_enemy_defeated(enemy_key, enemy)
@@ -893,11 +1088,7 @@ func _apply_enemy_action_state(enemy_key: String, enemy: Dictionary) -> bool:
 	var valid_attackers := []
 
 	for client_id in attackers:
-		if not server_manager.connected_clients.has(client_id):
-			continue
-
-		var player_state: Dictionary = battle_players.get(client_id, {})
-		if float(player_state.get("hp", PLAYER_MAX_HP)) > 0.0:
+		if _is_valid_enemy_attacker(enemy, client_id):
 			valid_attackers.append(client_id)
 
 	enemy.attackers = valid_attackers
@@ -926,11 +1117,18 @@ func _apply_enemy_action_state(enemy_key: String, enemy: Dictionary) -> bool:
 		return true
 
 	var target_client_id: int = _choose_enemy_target(enemy, valid_attackers)
-	var player = battle_players.get(target_client_id, BattleCalculator.create_player_battle_state())
+	var player := _get_or_create_player_battle_state(target_client_id)
 	var skill: Dictionary = chosen_skill
 
 	if bool(enemy.get("defeated", false)) or float(enemy.get("hp", ENEMY_MAX_HP)) <= 0.0:
 		_mark_enemy_defeated(enemy_key, enemy)
+		return false
+
+	# Re-check immediately before applying damage. The target may have
+	# teleported/changed scene since the valid attacker list was built.
+	if not _is_valid_enemy_attacker(enemy, target_client_id):
+		enemy.next_action_at = 0.0 if enemy.get("attackers", []).is_empty() else _now() + ENEMY_ACTION_INTERVAL
+		battle_enemies[enemy_key] = enemy
 		return false
 
 	var damage := BattleCalculator.calculate_enemy_damage(enemy, player, skill)
@@ -965,10 +1163,7 @@ func _choose_enemy_target(enemy: Dictionary, valid_attackers: Array) -> int:
 
 
 func _handle_reset_player_battle(client_id: int) -> void:
-	if not battle_players.has(client_id):
-		battle_players[client_id] = BattleCalculator.create_player_battle_state()
-
-	var player: Dictionary = battle_players[client_id]
+	var player: Dictionary = _get_or_create_player_battle_state(client_id)
 	player.hp = float(player.get("max_hp", PLAYER_MAX_HP))
 	player.mp = float(player.get("max_mp", PLAYER_MAX_MP))
 	player.cooldowns = {}
@@ -985,11 +1180,33 @@ func _handle_reset_player_battle(client_id: int) -> void:
 			attackers.erase(client_id)
 			enemy.attackers = attackers
 
-			if attackers.is_empty():
-				enemy.next_action_at = 0.0
 
-			battle_enemies[key] = enemy
-			_reset_enemy_if_no_attackers(str(key), enemy)
+func _exit_player_battle_for_area_change(client_id: int) -> void:
+	var player: Dictionary = _get_or_create_player_battle_state(client_id)
+
+	# Changing scene/map is a hard battle exit. Clear both the current
+	# target and any active battle effects so debuffs do not carry into
+	# the next scene. HP/MP/cooldowns are kept, matching normal battle
+	# exit behaviour.
+	player.target_enemy_id = ""
+	player.effects = []
+	battle_players[client_id] = player
+
+	for key in battle_enemies.keys().duplicate():
+		var enemy: Dictionary = battle_enemies[key]
+		var attackers: Array = enemy.get("attackers", [])
+
+		if not attackers.has(client_id):
+			continue
+
+		attackers.erase(client_id)
+		enemy.attackers = attackers
+
+		if attackers.is_empty():
+			enemy.next_action_at = 0.0
+
+		battle_enemies[key] = enemy
+		_reset_enemy_if_no_attackers(str(key), enemy)
 
 	_send_battle_state(client_id)
 
@@ -1027,7 +1244,32 @@ func _send_battle_error(client_id: int, message: String) -> void:
 # --------------------------------------------------
 # CLIENT PACKETS
 # --------------------------------------------------
+func _is_battle_state_for_current_area(battle: Dictionary) -> bool:
+	if battle.is_empty():
+		return true
+
+	var player_state: Dictionary = battle.get("player", {})
+	if player_state.is_empty():
+		return true
+
+	var state_map := str(player_state.get("map", SceneManager.current_map))
+	var state_scene := str(player_state.get("scene", SceneManager.current_scene))
+	var state_instance := int(player_state.get("instance", SceneManager.current_instance))
+
+	return (
+		state_map == str(SceneManager.current_map)
+		and state_scene == str(SceneManager.current_scene)
+		and state_instance == int(SceneManager.current_instance)
+	)
+
+
 func _apply_client_battle_state(battle: Dictionary) -> void:
+	# A battle packet from the old scene can arrive after the teleport packet.
+	# Ignore it so delayed enemy damage/effects cannot be applied to the UI
+	# after the player has already landed in the new scene.
+	if not _is_battle_state_for_current_area(battle):
+		return
+
 	var game := SceneManager.player.get_tree().root.get_node_or_null("Game") if SceneManager.player != null else null
 	if game == null:
 		return
@@ -1057,6 +1299,25 @@ func _apply_client_enemy_visibility(data: Dictionary) -> void:
 
 	if ui != null and ui.has_method("on_enemy_visibility_changed"):
 		ui.on_enemy_visibility_changed(enemy, enemy.visible)
+
+
+func _is_remote_move_for_current_area(data: Dictionary) -> bool:
+	# Remote movement is sent unreliably/ordered, so an old movement packet
+	# can arrive just after a teleport sync has removed that player from this
+	# scene. Never let that stale packet respawn the remote player at their
+	# previous scene position.
+	if not data.has("map") and not data.has("scene") and not data.has("instance"):
+		return true
+
+	var packet_map := str(data.get("map", SceneManager.current_map))
+	var packet_scene := str(data.get("scene", SceneManager.current_scene))
+	var packet_instance := int(data.get("instance", SceneManager.current_instance))
+
+	return (
+		packet_map == str(SceneManager.current_map)
+		and packet_scene == str(SceneManager.current_scene)
+		and packet_instance == int(SceneManager.current_instance)
+	)
 
 
 func handle_client_packet(data: Dictionary) -> void:
@@ -1092,36 +1353,80 @@ func handle_client_packet(data: Dictionary) -> void:
 
 		"s_teleport_player":
 			logger.info("Server teleport")
+			await SceneManager.teleport_player_to(
+				data.get("map", SceneManager.current_map),
+				data.get("scene", SceneManager.current_scene),
+				data.get("position", Vector2.ZERO),
+				int(data.get("facing", 1)),
+				str(data.get("target_teleport", "")),
+				int(data.get("instance", SceneManager.current_instance)),
+				int(data.get("map_population", SceneManager.current_map_population))
+			)
+			_apply_client_battle_state(data.get("battle", {}))
 
 		"s_request_sync":
 			_apply_client_sync(data)
 
+		"s_remote_remove":
+			SceneManager.remove_remote_player(int(data.get("id", 0)))
+
 		"s_remote_move":
-			SceneManager.update_remote_player(
-				data.id,
-				data.position,
-				int(data.get("facing", 1)),
-				data.get("velocity", Vector2.ZERO),
-				int(data.get("pose", 0)),
-				int(data.get("sequence", 0)),
-				bool(data.get("stopped", false)),
-			)
+			if _is_remote_move_for_current_area(data):
+				SceneManager.update_remote_player(
+					data.id,
+					data.position,
+					int(data.get("facing", 1)),
+					data.get("velocity", Vector2.ZERO),
+					int(data.get("pose", 0)),
+					int(data.get("sequence", 0)),
+					bool(data.get("stopped", false)),
+				)
+			else:
+				SceneManager.remove_remote_player(int(data.get("id", 0)))
 
 
 func _apply_client_sync(data: Dictionary) -> void:
 	logger.info("Server request sync")
 
-	if data.has("map") or data.has("instance") or data.has("map_population"):
+	# Sync packets are reliable, so a previous-room sync can arrive after this
+	# client has already changed scene. Never let an old sync change the local
+	# SceneManager status or recreate remotes at old-room positions.
+	if data.has("map") or data.has("scene") or data.has("instance"):
+		var sync_map := str(data.get("map", SceneManager.current_map))
+		var sync_scene := str(data.get("scene", SceneManager.current_scene))
+		var sync_instance := int(data.get("instance", SceneManager.current_instance))
+
+		var sync_matches_current := (
+			sync_map == str(SceneManager.current_map)
+			and sync_scene == str(SceneManager.current_scene)
+			and sync_instance == int(SceneManager.current_instance)
+		)
+
+		if not sync_matches_current:
+			return
+
 		SceneManager.set_map_status(
-			data.get("map", SceneManager.current_map),
-			data.get("scene", SceneManager.current_scene),
-			int(data.get("instance", SceneManager.current_instance)),
+			SceneManager.current_map,
+			SceneManager.current_scene,
+			SceneManager.current_instance,
+			int(data.get("map_population", SceneManager.current_map_population))
+		)
+	elif data.has("map_population"):
+		SceneManager.set_map_status(
+			SceneManager.current_map,
+			SceneManager.current_scene,
+			SceneManager.current_instance,
 			int(data.get("map_population", SceneManager.current_map_population))
 		)
 
 	SceneManager.clear_remote_players()
 
 	for p in data.players:
+		# Only spawn players that explicitly belong to this exact area. This prevents
+		# a late sync from another scene from recreating a remote at an old position.
+		if not _is_remote_move_for_current_area(p):
+			continue
+
 		SceneManager.spawn_remote_player(
 			p.id,
 			p.position,
@@ -1159,5 +1464,8 @@ func sync_visibility_group(map: String, scene: String, instance: int):
 		server_manager.send_to_client(target_client_id, {
 			"type": "s_request_sync",
 			"players": visible_players,
+			"map": map,
+			"scene": scene,
+			"instance": instance,
 			"map_population": map_population
 		})

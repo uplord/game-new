@@ -11,7 +11,7 @@ const HEARTBEAT_INTERVAL := 1.0
 
 var DebugLogger = preload("res://utilities/logger.gd")
 var PacketManager = preload("./packet_manager.gd")
-var InstanceManagerScript = preload("instance_manager.gd")
+var InstanceManagerScript = preload("./instance_manager.gd")
 
 var logger: Node
 var instance_manager: Node

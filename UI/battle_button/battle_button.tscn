@@ -1,0 +1,130 @@
+[gd_scene format=3 uid="uid://ycs6i1r7qk7v"]
+
+[ext_resource type="Script" uid="uid://calp04oui1su2" path="res://ui/battle_button/battle_button.gd" id="1_rc067"]
+[ext_resource type="Texture2D" uid="uid://clabb05un0c0y" path="res://ui/Icons/Skull_Icon.png" id="2_k7fpr"]
+[ext_resource type="Texture2D" uid="uid://c0sbnddxlxbcx" path="res://ui/Icons/Skull_Trim.png" id="3_huyuj"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_skus3"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+corner_detail = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fgwsw"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rk4i1"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vxwdp"]
+bg_color = Color(0.6666667, 0.6666667, 0.6666667, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c7stm"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[node name="Button" type="Button" unique_id=74086126]
+custom_minimum_size = Vector2(64, 64)
+theme_override_styles/normal = SubResource("StyleBoxFlat_skus3")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_fgwsw")
+theme_override_styles/hover = SubResource("StyleBoxFlat_rk4i1")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_vxwdp")
+theme_override_styles/focus = SubResource("StyleBoxFlat_c7stm")
+script = ExtResource("1_rc067")
+icon_image = ExtResource("2_k7fpr")
+icon_trim = ExtResource("3_huyuj")
+icon_scale = 0.65
+border_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+progress_padding = 2.0
+
+[node name="Icon" type="TextureRect" parent="." unique_id=1863176667]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.8
+offset_top = -20.8
+offset_right = 20.8
+offset_bottom = 20.8
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Trim" type="TextureRect" parent="." unique_id=360774369]
+modulate = Color(1, 0, 0, 1)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.8
+offset_top = -20.8
+offset_right = 20.8
+offset_bottom = 20.8
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CountdownLabel" type="Label" parent="." unique_id=586506023]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+vertical_alignment = 1

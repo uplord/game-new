@@ -87,6 +87,20 @@ func set_remote_state(
 	if snapshot_stopped:
 		clean_velocity = Vector2.ZERO
 
+	# Scene teleports are large authoritative jumps, not normal movement.
+	# If this remote player already exists locally, do not interpolate from the
+	# old scene position for one frame before snapping to the new target.
+	var is_large_authoritative_jump := has_target and position.distance_squared_to(pos) > SNAP_DISTANCE * SNAP_DISTANCE
+	if is_large_authoritative_jump:
+		snapshots.clear()
+		position = pos
+		has_target = true
+		visual_direction = Vector2.ZERO
+		visual_stopped = true
+		if network_facing != 0:
+			set_facing(network_facing)
+		set_pose(pose)
+
 	snapshots.append({
 		"position": pos,
 		"velocity": clean_velocity,

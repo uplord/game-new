@@ -34,6 +34,25 @@ signal targeted(enemy: Node)
 @export var max_mp := 100.0
 @export var mp := 100.0
 
+# Number of generated approach slots around this enemy.
+# Player.gd multiplies each generated direction by the enemy/player engagement
+# distance, so MIN_ENEMY_APPROACH_DISTANCE is still respected.
+@export_range(2, 32, 1) var approach_point_count := 8
+
+# 360 = full ring around the enemy.
+# 180 = only the left/right side arc, useful if you do not want players standing
+# directly above/below the enemy in a side-view room.
+@export_range(45.0, 360.0, 1.0) var approach_point_arc_degrees := 360.0
+
+# Rotates the generated slot pattern.
+# 0 starts on the right side of the enemy.
+# 90 starts below the enemy in Godot's 2D coordinates.
+@export_range(-360.0, 360.0, 1.0) var approach_point_arc_offset_degrees := 0.0
+
+# Optional manual override. Leave empty to use approach_point_count.
+# Add directions here only if you want hand-authored slots.
+@export var approach_point_directions: PackedVector2Array = PackedVector2Array()
+
 @onready var body: Node = $Base/Model
 
 var is_selected := false

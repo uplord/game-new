@@ -29,6 +29,7 @@ var remote_player_scene = preload("res://entities/remote_player/remote_player.ts
 var player: Node2D
 
 var spawn_requested := false
+var teleport_arrival_lock_key := ""
 
 var remote_players := {}
 
@@ -136,7 +137,8 @@ func load_scene(scene_name: String) -> void:
 
 	for child in map.get_children():
 		if child.name.begins_with("Scene"):
-			child.queue_free()
+			map.remove_child(child)
+			child.free()
 
 	var path := "res://maps/%s/scenes/%s.tscn" % [current_map, scene_name]
 	
@@ -207,6 +209,128 @@ func set_map_population(population: int) -> void:
 	map_status_changed.emit()
 
 
+
+# --------------------------------------------------
+# TELEPORTS
+# --------------------------------------------------
+func teleport_player_to(
+	map_name: String,
+	scene_name: String,
+	position: Vector2,
+	facing: int = 1,
+	arrival_teleport_name: String = "",
+	instance: int = 1,
+	population: int = 0
+) -> void:
+	_show_loading_screen("Loading", "Changing area...")
+
+	if player and is_instance_valid(player):
+		player.movement_locked = true
+		player.velocity = Vector2.ZERO
+
+	await get_tree().process_frame
+
+	_clear_local_battle_for_area_change()
+
+	var map_changed := map_name != current_map
+	current_map = map_name
+	current_scene = scene_name
+	current_instance = instance
+	current_map_population = population
+	map_status_changed.emit()
+
+	if map_changed:
+		if map:
+			map.queue_free()
+			map = null
+
+		var map_path := "res://maps/%s/map.tscn" % current_map
+		var packed_map = load(map_path)
+		if packed_map == null:
+			logger.error("Failed loading map: %s" % map_path)
+			return
+
+		map = packed_map.instantiate()
+		game.add_child(map)
+
+	load_scene(current_scene)
+	await get_tree().process_frame
+
+	clear_remote_players()
+
+	await load_camera()
+	await get_tree().process_frame
+
+	await _setup_player()
+
+	teleport_arrival_lock_key = _make_teleport_lock_key(current_map, current_scene, arrival_teleport_name)
+
+	if player and is_instance_valid(player):
+		player.visible = true
+		if player.has_method("reset_after_area_change"):
+			player.reset_after_area_change(position, facing, teleport_arrival_lock_key)
+		else:
+			player.position = position
+			player.velocity = Vector2.ZERO
+			if player.has_method("set_facing_direction"):
+				player.set_facing_direction(facing)
+			if player.has_method("cancel_mouse_movement"):
+				player.cancel_mouse_movement(false)
+
+	ServerManager.send_to_server({
+		"type": "c_request_sync"
+	})
+
+	await get_tree().process_frame
+	
+	_show_loading_screen("", "")
+	await get_tree().process_frame
+	
+	await _hide_loading_screen()
+
+
+
+func _clear_local_battle_for_area_change() -> void:
+	var ui := game.get_node_or_null("UI") if game != null else null
+	if ui != null and ui.has_method("hide_enemy_card"):
+		ui.hide_enemy_card(true)
+	if ui != null and ui.has_method("apply_battle_state"):
+		ui.apply_battle_state({
+			"player": {
+				"hp": ui.battle_state.get("player", {}).get("hp", 100.0) if ui.get("battle_state") != null else 100.0,
+				"max_hp": ui.battle_state.get("player", {}).get("max_hp", 100.0) if ui.get("battle_state") != null else 100.0,
+				"mp": ui.battle_state.get("player", {}).get("mp", 100.0) if ui.get("battle_state") != null else 100.0,
+				"max_mp": ui.battle_state.get("player", {}).get("max_mp", 100.0) if ui.get("battle_state") != null else 100.0,
+				"in_battle": false,
+				"target_enemy_id": "",
+			},
+			"enemy": {},
+		})
+
+	if player != null and is_instance_valid(player):
+		if player.has_method("cancel_mouse_movement"):
+			player.cancel_mouse_movement(false)
+		player.set("attacking_pose_active", false)
+
+func get_teleport_lock_key() -> String:
+	return teleport_arrival_lock_key
+
+
+func clear_teleport_lock_if_matches(lock_key: String) -> void:
+	if teleport_arrival_lock_key == lock_key:
+		teleport_arrival_lock_key = ""
+
+
+func make_teleport_lock_key(map_name: String, scene_name: String, teleport_name: String) -> String:
+	return _make_teleport_lock_key(map_name, scene_name, teleport_name)
+
+
+func _make_teleport_lock_key(map_name: String, scene_name: String, teleport_name: String) -> String:
+	if teleport_name == "":
+		return ""
+	return "%s::%s::%s" % [map_name, scene_name, teleport_name]
+
+
 # --------------------------------------------------
 # CAMERA
 # --------------------------------------------------
@@ -253,16 +377,33 @@ func load_camera() -> void:
 # --------------------------------------------------
 func clear_remote_players():
 	for p in remote_players.values():
-		if is_instance_valid(p):
-			p.queue_free()
+		_free_remote_player_now(p)
 
 	remote_players.clear()
 
 
+func _free_remote_player_now(remote_player: Node) -> void:
+	if not is_instance_valid(remote_player):
+		return
+
+	# Do not leave the old remote visible until the end of the frame.
+	# This matters during scene teleports because queue_free() alone can let
+	# the remote render once at its old scene position before the sync arrives.
+	remote_player.visible = false
+	remote_player.set_process(false)
+	remote_player.set_physics_process(false)
+
+	var parent := remote_player.get_parent()
+	if parent != null:
+		parent.remove_child(remote_player)
+
+	remote_player.queue_free()
+
+
 func spawn_remote_player(id: int, pos: Vector2, facing: int = 1, remote_velocity: Vector2 = Vector2.ZERO, pose: int = 0, sequence: int = -1, stopped: bool = false):
 	if remote_players.has(id):
-		if is_instance_valid(remote_players[id]):
-			remote_players[id].queue_free()
+		_free_remote_player_now(remote_players[id])
+		remote_players.erase(id)
 
 	var remote_player = remote_player_scene.instantiate()
 	remote_player.position = pos
@@ -306,9 +447,7 @@ func remove_remote_player(id: int):
 	if not remote_players.has(id):
 		return
 
-	if is_instance_valid(remote_players[id]):
-		remote_players[id].queue_free()
-
+	_free_remote_player_now(remote_players[id])
 	remote_players.erase(id)
 
 

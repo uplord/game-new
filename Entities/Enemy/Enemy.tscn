@@ -14,6 +14,9 @@ script = ExtResource("1_salu8")
 model_data = SubResource("Resource_3l5gm")
 max_mp = 0.0
 mp = 0.0
+approach_point_count = null
+approach_point_arc_degrees = null
+approach_point_arc_offset_degrees = null
 
 [node name="Base" type="Node2D" parent="." unique_id=1167952262]
 

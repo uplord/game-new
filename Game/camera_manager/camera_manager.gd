@@ -1,8 +1,8 @@
 extends Node
 
-@onready var map = get_tree().root.get_node("Game/Map")
+@onready var map = get_tree().root.get_node_or_null("Game/Map")
 @onready var phantom_camera = $PhantomCamera2D
-@onready var camera_limits = map.get_node("Scene/Boundaries/CameraLimits")
+@onready var camera_limits: CollisionShape2D = null
 
 @onready var bar_left: ColorRect = $Cover/BarLeft
 @onready var bar_right: ColorRect = $Cover/BarRight
@@ -32,6 +32,7 @@ var current_game_offset := 0.0
 
 
 func _ready():
+	_refresh_map_references()
 	get_window().size_changed.connect(_on_window_resized)
 	call_deferred("_init_camera")
 
@@ -72,7 +73,18 @@ func _process(delta):
 func _init_camera():
 	await get_tree().process_frame
 	await get_tree().process_frame
+	_refresh_map_references()
 	get_window().size_changed.emit()
+
+
+func _refresh_map_references() -> void:
+	map = get_tree().root.get_node_or_null("Game/Map")
+	camera_limits = null
+
+	if map == null:
+		return
+
+	camera_limits = map.get_node_or_null("Scene/Boundaries/CameraLimits") as CollisionShape2D
 
 
 func _on_window_resized():
@@ -121,6 +133,29 @@ func reset_to_default_camera() -> void:
 	target_look_ahead = 0.0
 
 
+func reset_look_ahead() -> void:
+	look_ahead_locked = false
+	enemy_focus_active = false
+	enemy_focus_direction = 0.0
+	target_look_ahead = 0.0
+	current_look_ahead = 0.0
+
+
+func snap_look_ahead_direction(dir: float) -> void:
+	var snapped_direction = clamp(dir, -1.0, 1.0)
+	look_ahead_locked = false
+	enemy_focus_active = false
+	enemy_focus_direction = 0.0
+	target_look_ahead = snapped_direction
+	current_look_ahead = snapped_direction
+
+	if phantom_camera != null and is_instance_valid(phantom_camera):
+		phantom_camera.follow_offset = Vector2(
+			current_look_ahead * look_ahead_distance,
+			-current_game_offset
+		)
+
+
 func apply_orientation_zoom():
 	var safe_area: Rect2i = DisplayServer.get_display_safe_area()
 	var screen_size := get_viewport().get_visible_rect().size
@@ -138,9 +173,15 @@ func apply_orientation_zoom():
 		map_scale = screen_size.y / BASE_SIZE.y
 		game_offset = 0.0
 	print("map_scale: ", map_scale)
-	map.scale = Vector2.ONE * map_scale
+	if map != null and is_instance_valid(map):
+		map.scale = Vector2.ONE * map_scale
 
 func apply_camera_limits() -> void:
+	_refresh_map_references()
+
+	if camera_limits == null or not is_instance_valid(camera_limits):
+		return
+
 	var shape = camera_limits.shape
 	if shape == null:
 		return

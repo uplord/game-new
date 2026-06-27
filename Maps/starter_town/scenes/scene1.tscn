@@ -5,17 +5,12 @@
 [ext_resource type="PackedScene" uid="uid://bewa5sr8dbg8x" path="res://entities/objects/rocks/rock2.tscn" id="3_6bm5s"]
 [ext_resource type="PackedScene" uid="uid://b5owij6a532fg" path="res://entities/objects/trees/spruce/tree.tscn" id="4_54ybu"]
 [ext_resource type="PackedScene" uid="uid://ckrk0wlaltbnp" path="res://entities/enemy/enemy.tscn" id="5_n1nco"]
-[ext_resource type="Script" uid="uid://6qhmyfdfow1m" path="res://models/data/baby_slime/baby_slime_model_data.gd" id="6_uulw0"]
 [ext_resource type="Script" uid="uid://cp4pst7p8dnh3" path="res://models/data/baby_dragon/baby_dragon_model_data.gd" id="7_xhrer"]
+[ext_resource type="PackedScene" uid="uid://ghe3w2p1r3w1" path="res://entities/teleports/teleport.tscn" id="8_7saxw"]
 [ext_resource type="Script" uid="uid://tvb3xi8lsb3p" path="res://models/data/human/human_model_data.gd" id="8_tliui"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rr3rg"]
 size = Vector2(1307, 735)
-
-[sub_resource type="Resource" id="Resource_rgito"]
-script = ExtResource("6_uulw0")
-facing_direction = 1
-metadata/_custom_type_script = "uid://6qhmyfdfow1m"
 
 [sub_resource type="Resource" id="Resource_8obig"]
 script = ExtResource("7_xhrer")
@@ -64,14 +59,9 @@ position = Vector2(-235, -78)
 position = Vector2(-397, -54)
 
 [node name="Tree" parent="Objects" unique_id=1125370262 instance=ExtResource("4_54ybu")]
-position = Vector2(-625, -6)
+position = Vector2(-593, -10)
 
 [node name="Enemies" type="Node2D" parent="." unique_id=1861785255]
-
-[node name="Enemy" parent="Enemies" unique_id=167616825 instance=ExtResource("5_n1nco")]
-position = Vector2(487, 135)
-model_data = SubResource("Resource_rgito")
-enemy_name = "Slime baby"
 
 [node name="Enemy2" parent="Enemies" unique_id=10092746 instance=ExtResource("5_n1nco")]
 position = Vector2(339, -19)
@@ -81,10 +71,19 @@ max_hp = 250.0
 hp = 250.0
 
 [node name="Enemy3" parent="Enemies" unique_id=1732991765 instance=ExtResource("5_n1nco")]
-position = Vector2(-446, 262)
+position = Vector2(-371, 188)
 model_data = SubResource("Resource_f1vb1")
 animation_tree_enabled = true
 starting_pose = 1
 enemy_name = "Human enemy"
 max_hp = 500.0
 hp = 500.0
+
+[node name="Teleports" type="Node2D" parent="." unique_id=1559874224]
+
+[node name="Teleport" parent="Teleports" unique_id=535956278 instance=ExtResource("8_7saxw")]
+position = Vector2(558, 85)
+target_map = "starter_town"
+target_scene = "scene2"
+target_teleport = "Teleport"
+teleport_direction = 4

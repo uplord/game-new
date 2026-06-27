@@ -104,7 +104,7 @@ static func skill_resource_to_dictionary(skill: Resource) -> Dictionary:
 	}
 
 
-static func create_player_battle_state() -> Dictionary:
+static func create_player_battle_state(map: String = "", scene: String = "", instance: int = -1) -> Dictionary:
 	return {
 		"hp": PLAYER_MAX_HP,
 		"max_hp": PLAYER_MAX_HP,
@@ -113,6 +113,9 @@ static func create_player_battle_state() -> Dictionary:
 		"cooldowns": {},
 		"effects": [],
 		"target_enemy_id": "",
+		"map": map,
+		"scene": scene,
+		"instance": instance,
 	}
 
 

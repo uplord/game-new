@@ -25,6 +25,7 @@ const MAX_LANDSCAPE_ASPECT := 16.0 / 9.0
 
 const MAP_LABEL_UPDATE_INTERVAL := 0.25
 const AUTO_SKILL_PENDING_TIMEOUT := 1.0
+const PLAYER_GLOBAL_SKILL_COOLDOWN := 1.0
 
 var _map_label_timer := 0.0
 var _last_map_label_text := ""
@@ -48,6 +49,7 @@ var skill_info_body: RichTextLabel = null
 var selected_skill_info_id := ""
 
 var battle_button_timer := 0.0
+var queued_battle_skill_id := ""
 
 func _ready() -> void:
 	get_viewport().size_changed.connect(_on_resized)
@@ -146,9 +148,14 @@ func _update_map_label() -> void:
 	if map_name == "":
 		map_name = "-"
 
-	var text := "Map: %s | Instance: %d | Players: %d" % [
+	var scene_name := SceneManager.current_scene
+	if scene_name == "":
+		scene_name = "-"
+
+	var text := "Map: %s | Instance: %d | Scene: %s | Players: %d" % [
 		map_name,
 		SceneManager.current_instance,
+		scene_name,
 		SceneManager.current_map_population
 	]
 
@@ -196,10 +203,10 @@ func show_enemy_card(enemy: Node) -> void:
 	show_enemy_card_local(enemy)
 
 
-func _move_player_close_to_enemy(enemy: Node) -> void:
+func _move_player_close_to_enemy(enemy: Node, force_reposition: bool = false) -> void:
 	var player := SceneManager.player
 	if player != null and is_instance_valid(player) and player.has_method("move_close_to_enemy"):
-		player.move_close_to_enemy(enemy)
+		player.move_close_to_enemy(enemy, force_reposition)
 
 
 func _should_move_player_back_to_enemy(enemy: Node) -> bool:
@@ -374,6 +381,9 @@ func _get_skill_data(skill_id: String) -> Dictionary:
 
 
 func _on_battle_skill_pressed(skill_id: String) -> void:
+	if queued_battle_skill_id != "":
+		return
+
 	var skill: Dictionary = _get_skill_data(skill_id)
 	var skill_type := str(skill.get("type", ""))
 	var needs_enemy := skill_type == "melee" or skill_type == "magic" or skill_type == "debuff"
@@ -391,8 +401,31 @@ func _on_battle_skill_pressed(skill_id: String) -> void:
 		else:
 			return
 
+	# If an attack requires an enemy, press first moves the player back to the
+	# proper engagement side. The actual skill packet is delayed until Player.gd
+	# reports that the approach movement has finished, so attacks do not fire
+	# while the player is still running into position.
+	if needs_enemy and current_enemy_target != null and is_instance_valid(current_enemy_target):
+		_move_player_close_to_enemy(current_enemy_target, true)
+		if _is_player_approaching_enemy(current_enemy_target):
+			queued_battle_skill_id = skill_id
+			_set_auto_skill_pending(skill_id)
+			_update_battle_buttons()
+			await _wait_for_player_enemy_approach(current_enemy_target)
+			if queued_battle_skill_id != skill_id:
+				return
+			queued_battle_skill_id = ""
+			if current_enemy_target == null or not is_instance_valid(current_enemy_target) or not current_enemy_target.visible:
+				auto_skill_pending.erase(skill_id)
+				_update_battle_buttons()
+				return
+
 	# Battle UI buttons can select/approach the target, but camera focus remains disabled.
 
+	_send_battle_skill_packet(skill_id)
+
+
+func _send_battle_skill_packet(skill_id: String) -> void:
 	var packet := {
 		"type": "c_use_skill",
 		"skill_id": skill_id,
@@ -409,6 +442,20 @@ func _on_battle_skill_pressed(skill_id: String) -> void:
 	_set_auto_skill_pending(skill_id)
 	_update_battle_buttons()
 	ServerManager.send_to_server(packet)
+
+
+func _is_player_approaching_enemy(enemy: Node) -> bool:
+	var player := SceneManager.player
+	if player == null or not is_instance_valid(player):
+		return false
+	if player.has_method("is_enemy_approach_in_progress"):
+		return bool(player.call("is_enemy_approach_in_progress", enemy))
+	return false
+
+
+func _wait_for_player_enemy_approach(enemy: Node) -> void:
+	while _is_player_approaching_enemy(enemy):
+		await get_tree().physics_frame
 
 
 func apply_battle_state(state: Dictionary) -> void:
@@ -436,6 +483,11 @@ func apply_battle_state(state: Dictionary) -> void:
 	call_deferred("_update_effect_labels")
 
 	var enemy = state.get("enemy", {})
+	if str(enemy.get("id", "")) == "":
+		hide_enemy_card(true)
+		_update_battle_buttons()
+		return
+
 	if current_enemy_target != null and is_instance_valid(current_enemy_target):
 		current_enemy_target.set("hp", float(enemy.get("hp", current_enemy_target.get("hp"))))
 		current_enemy_target.set("max_hp", float(enemy.get("max_hp", current_enemy_target.get("max_hp"))))
@@ -478,16 +530,33 @@ func _update_battle_buttons() -> void:
 
 		var skill_id = skill_button_order[i]
 		var usable := _is_skill_usable(skill_id, false)
-		var disabled_for_pending := _is_auto_skill_pending(str(skill_id))
+		var disabled_for_pending := _is_auto_skill_pending(str(skill_id)) or queued_battle_skill_id != ""
 		button.disabled = not usable or disabled_for_pending
 
-		var countdown_remaining := _skill_cooldown_remaining(str(skill_id))
+		var cooldown_status := _get_battle_button_cooldown_status(str(skill_id))
+		var global_cooldown := _global_skill_cooldown_remaining() > 0.0
+		var countdown_remaining := float(cooldown_status.get("remaining", 0.0))
+		var cooldown_total := float(cooldown_status.get("total", 0.0))
+		
+		var skill_cooldown = countdown_remaining > 0.0
+
+		if button.has_method("set_progress_color"):
+			if global_cooldown and not skill_cooldown:
+				button.call("set_progress_color", Color("ffffff40"))
+			else:
+				button.call("set_progress_color", button.progress_color)
 
 		if button.has_method("set_countdown_text"):
 			if countdown_remaining > 0.0:
 				button.call("set_countdown_text", str(int(ceil(countdown_remaining))))
 			else:
 				button.call("set_countdown_text", "")
+
+		if button.has_method("set_progress"):
+			if countdown_remaining > 0.0 and cooldown_total > 0.0:
+				button.call("set_progress", 1.0 - clamp(countdown_remaining / cooldown_total, 0.0, 1.0))
+			else:
+				button.call("set_progress", 1.0)
 
 		button.tooltip_text = _build_skill_tooltip(skill_id)
 
@@ -726,6 +795,21 @@ func _format_number(value: float) -> String:
 
 func _battle_button_disabled_cooldown_remaining(skill_id: String) -> float:
 	return max(_global_skill_cooldown_remaining(), _skill_cooldown_remaining(skill_id))
+
+
+func _get_battle_button_cooldown_status(skill_id: String) -> Dictionary:
+	var skill_remaining := _skill_cooldown_remaining(skill_id)
+	if skill_remaining > 0.0:
+		var skill := _get_skill_data(skill_id)
+		return {
+			"remaining": skill_remaining,
+			"total": max(skill_remaining, float(skill.get("cooldown", 0.0))),
+		}
+
+	return {
+		"remaining": 0.0,
+		"total": 0.0,
+	}
 
 
 func _global_skill_cooldown_remaining() -> float:

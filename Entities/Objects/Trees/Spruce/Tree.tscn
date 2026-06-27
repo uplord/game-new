@@ -9,4 +9,4 @@ script = ExtResource("1_0borc")
 [node name="Image" type="Sprite2D" parent="." unique_id=607469073]
 scale = Vector2(0.75, 0.75)
 texture = ExtResource("2_lpyto")
-offset = Vector2(0, -283.5)
+offset = Vector2(0, -310.5)

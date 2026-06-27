@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://b7xwyiph6u80t"]
+
+[ext_resource type="Texture2D" uid="uid://ckxwfquxnjgay" path="res://maps/starter_town/art/map-starter.png" id="1_mi0so"]
+[ext_resource type="PackedScene" uid="uid://ghe3w2p1r3w1" path="res://entities/teleports/teleport.tscn" id="4_6dc23"]
+[ext_resource type="PackedScene" uid="uid://ckrk0wlaltbnp" path="res://entities/enemy/enemy.tscn" id="5_itsjl"]
+[ext_resource type="Script" uid="uid://6qhmyfdfow1m" path="res://models/data/baby_slime/baby_slime_model_data.gd" id="6_ws8g2"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rr3rg"]
+size = Vector2(1307, 735)
+
+[sub_resource type="Resource" id="Resource_rgito"]
+script = ExtResource("6_ws8g2")
+facing_direction = 1
+metadata/_custom_type_script = "uid://6qhmyfdfow1m"
+
+[node name="Scene2" type="Node2D" unique_id=283029346]
+
+[node name="Background" type="Sprite2D" parent="." unique_id=2117231221]
+scale = Vector2(-1, 1)
+texture = ExtResource("1_mi0so")
+
+[node name="Boundaries" type="Area2D" parent="." unique_id=1645794532]
+
+[node name="Boundary" type="StaticBody2D" parent="Boundaries" unique_id=1359634240]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Boundaries/Boundary" unique_id=669647876]
+scale = Vector2(-1, 1)
+polygon = PackedVector2Array(-57, 368, 649, 363, 649, -273, 430, -240, 190, -193, 18, -193, -645, -196, -653, 365, -57, 368, -61, 758, -831, 778, -841, -673, 886, -662, 887, 780, -61, 766)
+
+[node name="CameraLimits" type="CollisionShape2D" parent="Boundaries" unique_id=869885515]
+shape = SubResource("RectangleShape2D_rr3rg")
+
+[node name="Objects" type="Node2D" parent="." unique_id=532033821]
+
+[node name="Enemies" type="Node2D" parent="." unique_id=1861785255]
+
+[node name="Enemy" parent="Enemies" unique_id=167616825 instance=ExtResource("5_itsjl")]
+position = Vector2(425, 211)
+model_data = SubResource("Resource_rgito")
+enemy_name = "Slime baby"
+approach_point_count = null
+approach_point_arc_degrees = null
+approach_point_arc_offset_degrees = null
+
+[node name="Teleports" type="Node2D" parent="." unique_id=881258272]
+
+[node name="Teleport" parent="Teleports" unique_id=535956278 instance=ExtResource("4_6dc23")]
+position = Vector2(-576, 55)
+target_map = "starter_town"
+target_scene = "scene1"
+target_teleport = "Teleport"
+target_direction = -1
+teleport_direction = 3
