@@ -3,6 +3,8 @@ extends Node2D
 
 signal targeted(enemy: Node)
 
+@export var enemy_definition_id := "slime_001"
+
 @export_category("Model")
 @export var model_data: ModelData:
 	set(value):

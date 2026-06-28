@@ -174,6 +174,18 @@ func handle_server_packet(client_id: int, data: Dictionary) -> void:
 
 	match packet_type:
 		"c_handshake":
+			var firebase_user_id := str(data.get("firebase_user_id", "")).strip_edges()
+
+			if not server_manager.has_method("try_register_account_session"):
+				server_manager.send_to_client(client_id, {
+					"type": "s_login_rejected",
+					"message": "Server account session support is missing."
+				})
+				return
+
+			if not server_manager.try_register_account_session(client_id, firebase_user_id):
+				return
+
 			server_manager.connected_clients[client_id] = 0.0
 			logger.info("Total players: %d" % server_manager.connected_clients.size())
 
@@ -1327,6 +1339,20 @@ func _is_remote_move_for_current_area(data: Dictionary) -> bool:
 
 func handle_client_packet(data: Dictionary) -> void:
 	match data.get("type", ""):
+		"s_login_rejected":
+			var message := str(data.get("message", "Login rejected."))
+			logger.warn(message)
+			if server_manager.has_signal("login_rejected"):
+				server_manager.login_rejected.emit(message)
+			server_manager.handle_server_disconnect()
+
+		"s_login_replaced":
+			var message := str(data.get("message", "Your account was logged in on another device."))
+			logger.warn(message)
+			if server_manager.has_signal("login_rejected"):
+				server_manager.login_rejected.emit(message)
+			server_manager.handle_server_disconnect()
+
 		"s_handshake_ack":
 			server_manager.local_peer_id = data.client_id
 			server_manager.mark_server_ready()

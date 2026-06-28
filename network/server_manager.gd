@@ -2,6 +2,7 @@ extends Node
 
 signal server_ready
 signal server_lost
+signal login_rejected(message: String)
 
 const SERVER_IP := "80.193.20.125"
 const PORT := 7777
@@ -29,6 +30,12 @@ var heartbeat_timer: float = 0.0
 var connected_clients: Dictionary = {}
 var remote_players: Dictionary = {}
 var remote_players_by_instance: Dictionary = {}
+
+# Firebase account session tracking.
+# active_account_sessions maps Firebase localId -> ENet peer id.
+# client_account_ids maps ENet peer id -> Firebase localId.
+var active_account_sessions: Dictionary = {}
+var client_account_ids: Dictionary = {}
 
 # --------------------------------------------------
 # INIT
@@ -78,8 +85,8 @@ func _process(delta: float) -> void:
 
 	
 	# handshake
-	if not handshake_sent and status == MultiplayerPeer.CONNECTION_CONNECTED:
-		send_to_server({ "type": "c_handshake" })
+	if not is_server and not handshake_sent and status == MultiplayerPeer.CONNECTION_CONNECTED:
+		send_to_server(_make_handshake_packet())
 		handshake_sent = true
 
 	if connected:
@@ -183,6 +190,8 @@ func handle_disconnect(client_id: int, reason: String) -> void:
 
 
 func full_cleanup_client(client_id: int):
+	_clear_account_session(client_id)
+
 	if remote_players.has(client_id):
 		var p = remote_players[client_id]
 
@@ -220,10 +229,12 @@ func _send(data: Dictionary, target: int) -> void:
 	if peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
 		return
 
-	if is_server and not connected_clients.has(target):
+	var packet_type = data.get("type", "")
+	var allow_pre_handshake = packet_type == "s_login_rejected" or packet_type == "s_login_replaced"
+
+	if is_server and not connected_clients.has(target) and not allow_pre_handshake:
 		return
 
-	var packet_type = data.get("type", "")
 
 	var is_movement_packet = packet_type == "c_move_player" or (packet_type == "s_remote_move" and not bool(data.get("stopped", false)))
 
@@ -255,6 +266,96 @@ func broadcast_to_instance(map: String, instance: int, data: Dictionary):
 	for client_id in remote_players_by_instance[key].keys():
 		_send(data, client_id)
 
+
+
+# --------------------------------------------------
+# ACCOUNT SESSION HELPERS
+# --------------------------------------------------
+func _make_handshake_packet() -> Dictionary:
+	var firebase_user_id := ""
+	var firebase_id_token := ""
+	var firebase_email := ""
+	var firebase_display_name := ""
+
+	if Engine.has_singleton("Firebase"):
+		# Project autoloads are not native singletons, so this branch is normally unused.
+		pass
+
+	if has_node("/root/Firebase"):
+		var firebase := get_node("/root/Firebase")
+		if firebase.has_method("get_current_user_data"):
+			var user_data: Dictionary = firebase.get_current_user_data()
+			firebase_user_id = str(user_data.get("localId", ""))
+			firebase_id_token = str(user_data.get("idToken", ""))
+			firebase_email = str(user_data.get("email", ""))
+			firebase_display_name = str(user_data.get("username", user_data.get("displayName", "")))
+
+	return {
+		"type": "c_handshake",
+		"firebase_user_id": firebase_user_id,
+		"firebase_id_token": firebase_id_token,
+		"firebase_email": firebase_email,
+		"firebase_display_name": firebase_display_name,
+	}
+
+
+func try_register_account_session(client_id: int, firebase_user_id: String) -> bool:
+	firebase_user_id = firebase_user_id.strip_edges()
+
+	if firebase_user_id == "":
+		_reject_client_login(client_id, "Login first.")
+		return false
+
+	if active_account_sessions.has(firebase_user_id):
+		var existing_client_id := int(active_account_sessions[firebase_user_id])
+
+		if existing_client_id != client_id and (connected_clients.has(existing_client_id) or remote_players.has(existing_client_id)):
+			_kick_existing_account_session(existing_client_id, firebase_user_id)
+		else:
+			# Old stale session; remove it and allow this login.
+			active_account_sessions.erase(firebase_user_id)
+
+	active_account_sessions[firebase_user_id] = client_id
+	client_account_ids[client_id] = firebase_user_id
+	return true
+
+
+func _kick_existing_account_session(existing_client_id: int, firebase_user_id: String) -> void:
+	logger.warn("Account %s logged in again. Kicking old peer %d." % [firebase_user_id, existing_client_id])
+
+	# Tell the old client why it is being removed before closing the connection.
+	# The new login will continue and become the active session.
+	send_to_client(existing_client_id, {
+		"type": "s_login_replaced",
+		"message": "Your account was logged in on another device.",
+	})
+
+	handle_disconnect(existing_client_id, "account logged in elsewhere")
+
+	if peer != null:
+		peer.disconnect_peer(existing_client_id)
+
+
+func _reject_client_login(client_id: int, message: String) -> void:
+	logger.warn("Login rejected for %d: %s" % [client_id, message])
+	send_to_client(client_id, {
+		"type": "s_login_rejected",
+		"message": message,
+	})
+
+	if peer != null:
+		peer.disconnect_peer(client_id)
+
+
+func _clear_account_session(client_id: int) -> void:
+	if not client_account_ids.has(client_id):
+		return
+
+	var firebase_user_id := str(client_account_ids[client_id])
+	client_account_ids.erase(client_id)
+
+	if active_account_sessions.get(firebase_user_id, -1) == client_id:
+		active_account_sessions.erase(firebase_user_id)
 
 # -------------------------
 # INSTANCE HELPERS

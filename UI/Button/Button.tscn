@@ -4,9 +4,9 @@
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o8ei0"]
 content_margin_left = 16.0
-content_margin_top = 8.0
+content_margin_top = 0.0
 content_margin_right = 16.0
-content_margin_bottom = 8.0
+content_margin_bottom = 0.0
 bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
 border_width_left = 1
 border_width_top = 1
@@ -94,10 +94,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_glnhe")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_8vxab")
 theme_override_styles/focus = SubResource("StyleBoxFlat_huj2i")
 script = ExtResource("1_xg2gh")
-icon_scale = 0.65
-font_outline_color = null
-font_outline_size = null
-trim_color = null
+padding_y = 8.0
 
 [node name="Icon" type="TextureRect" parent="." unique_id=1391114924]
 layout_mode = 1

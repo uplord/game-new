@@ -148,14 +148,9 @@ func _update_map_label() -> void:
 	if map_name == "":
 		map_name = "-"
 
-	var scene_name := SceneManager.current_scene
-	if scene_name == "":
-		scene_name = "-"
-
-	var text := "Map: %s | Instance: %d | Scene: %s | Players: %d" % [
+	var text := "Map: %s | Instance: %d | Players: %d" % [
 		map_name,
 		SceneManager.current_instance,
-		scene_name,
 		SceneManager.current_map_population
 	]
 
@@ -175,7 +170,36 @@ func _on_server_lost() -> void:
 # ---------------------
 
 func _on_disconnect_pressed() -> void:
+	_clear_user_for_logout()
+
+	if Firebase.has_method("logout"):
+		Firebase.logout()
+	elif Firebase.has_method("sign_out"):
+		Firebase.sign_out()
+	elif Firebase.has_method("clear_user"):
+		Firebase.clear_user()
+
 	ServerManager.handle_server_disconnect()
+
+
+func _clear_user_for_logout() -> void:
+	queued_battle_skill_id = ""
+	battle_state = {}
+	battle_state_received_at = 0.0
+	was_dead = false
+	_clear_auto_skill_pending()
+	hide_enemy_card(true)
+	_hide_death_screen()
+	_hide_effect_labels()
+	_update_battle_buttons()
+
+	if player_card != null and player_card.has_method("set_card_data"):
+		player_card.set_card_data("Player", 100.0, 100.0, 100.0, 100.0)
+
+	if label_map != null:
+		_last_map_label_text = ""
+		label_map.text = "Map: - | Instance: 0 | Players: 0"
+
 
 func _on_modal_pressed() -> void:
 	modal.toggle()
@@ -458,26 +482,6 @@ func _wait_for_player_enemy_approach(enemy: Node) -> void:
 		await get_tree().physics_frame
 
 
-func _should_keep_current_enemy_target_on_empty_state(_player_state: Dictionary) -> bool:
-	if current_enemy_target == null or not is_instance_valid(current_enemy_target):
-		return false
-	var target_canvas := current_enemy_target as CanvasItem
-	if target_canvas != null and not target_canvas.visible:
-		return false
-
-	var player_node := SceneManager.player
-	if player_node == null or not is_instance_valid(player_node):
-		return false
-
-	if player_node.has_method("is_enemy_approach_in_progress") and player_node.is_enemy_approach_in_progress(current_enemy_target):
-		return true
-
-	if player_node.has_method("is_close_to_enemy") and player_node.is_close_to_enemy(current_enemy_target):
-		return true
-
-	return false
-
-
 func apply_battle_state(state: Dictionary) -> void:
 	battle_state = state
 	battle_state_received_at = Time.get_ticks_msec() / 1000.0
@@ -492,7 +496,7 @@ func apply_battle_state(state: Dictionary) -> void:
 
 	if player_card != null and player_card.has_method("set_card_data"):
 		player_card.set_card_data(
-			"Player",
+			Firebase.get_display_name(),
 			float(player.get("hp", 100.0)),
 			float(player.get("max_hp", 100.0)),
 			float(player.get("mp", 100.0)),
@@ -503,19 +507,6 @@ func apply_battle_state(state: Dictionary) -> void:
 	call_deferred("_update_effect_labels")
 
 	var enemy = state.get("enemy", {})
-	if str(enemy.get("id", "")) == "":
-		# After a scene change, a delayed/empty battle state can arrive just after the
-		# player selects an enemy in the new scene. Do not let that stale empty state
-		# clear a valid local target while the player is moving to, or already standing
-		# at, the selected approach point.
-		if _should_keep_current_enemy_target_on_empty_state(player):
-			_update_battle_buttons()
-			return
-
-		hide_enemy_card(true)
-		_update_battle_buttons()
-		return
-
 	if current_enemy_target != null and is_instance_valid(current_enemy_target):
 		current_enemy_target.set("hp", float(enemy.get("hp", current_enemy_target.get("hp"))))
 		current_enemy_target.set("max_hp", float(enemy.get("max_hp", current_enemy_target.get("max_hp"))))
@@ -562,17 +553,8 @@ func _update_battle_buttons() -> void:
 		button.disabled = not usable or disabled_for_pending
 
 		var cooldown_status := _get_battle_button_cooldown_status(str(skill_id))
-		var global_cooldown := _global_skill_cooldown_remaining() > 0.0
 		var countdown_remaining := float(cooldown_status.get("remaining", 0.0))
 		var cooldown_total := float(cooldown_status.get("total", 0.0))
-		
-		var skill_cooldown = countdown_remaining > 0.0
-
-		if button.has_method("set_progress_color"):
-			if global_cooldown and not skill_cooldown:
-				button.call("set_progress_color", Color("ffffff40"))
-			else:
-				button.call("set_progress_color", button.progress_color)
 
 		if button.has_method("set_countdown_text"):
 			if countdown_remaining > 0.0:
@@ -827,11 +809,19 @@ func _battle_button_disabled_cooldown_remaining(skill_id: String) -> float:
 
 func _get_battle_button_cooldown_status(skill_id: String) -> Dictionary:
 	var skill_remaining := _skill_cooldown_remaining(skill_id)
-	if skill_remaining > 0.0:
+	var global_remaining := _global_skill_cooldown_remaining()
+
+	if skill_remaining >= global_remaining and skill_remaining > 0.0:
 		var skill := _get_skill_data(skill_id)
 		return {
 			"remaining": skill_remaining,
 			"total": max(skill_remaining, float(skill.get("cooldown", 0.0))),
+		}
+
+	if global_remaining > 0.0:
+		return {
+			"remaining": global_remaining,
+			"total": max(global_remaining, PLAYER_GLOBAL_SKILL_COOLDOWN),
 		}
 
 	return {

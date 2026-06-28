@@ -19,7 +19,7 @@ enum TextAlignment {
 @export var full_width: bool = false
 
 @export var padding_x: float = 16.0
-@export var padding_y: float = 8.0
+@export var padding_y: float = 0.0
 
 @export var font_size: float = 16.0
 @export var border_size: float = 1.0

@@ -1,15 +1,74 @@
 [gd_scene format=3 uid="uid://dk6o4tvxb5ueb"]
 
 [ext_resource type="Script" uid="uid://bbu6plqtlakc4" path="res://ui/main_menu/main_menu.gd" id="1_6ba75"]
-[ext_resource type="Texture2D" uid="uid://beeglaekim12j" path="res://ui/main_menu/slime.png" id="2_8x0bb"]
 [ext_resource type="PackedScene" uid="uid://0wn6iixn2ehd" path="res://ui/button/button.tscn" id="2_kt4fb"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6mijq"]
+content_margin_left = 16.0
+content_margin_top = 0.0
+content_margin_right = 16.0
+content_margin_bottom = 0.0
+bg_color = Color(0, 0, 0, 0.2)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.4)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w2r0d"]
+content_margin_left = 16.0
+content_margin_top = 0.0
+content_margin_right = 16.0
+content_margin_bottom = 0.0
+bg_color = Color(0, 0, 0, 0.2)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4e78x"]
+content_margin_left = 16.0
+content_margin_top = 0.0
+content_margin_right = 16.0
+content_margin_bottom = 0.0
+bg_color = Color(0, 0, 0, 0.2)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.2)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mu8pm"]
+content_margin_left = 24.0
+content_margin_top = 0.0
+content_margin_right = 24.0
+content_margin_bottom = 0.0
+bg_color = Color(0.7647059, 0.16470589, 0.16862746, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_omy8q"]
 content_margin_left = 24.0
-content_margin_top = 8.0
+content_margin_top = 0.0
 content_margin_right = 24.0
-content_margin_bottom = 8.0
-bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+content_margin_bottom = 0.0
+bg_color = Color(0.7647059, 0.16470589, 0.16862746, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -22,10 +81,10 @@ corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_i5wg5"]
 content_margin_left = 24.0
-content_margin_top = 8.0
+content_margin_top = 0.0
 content_margin_right = 24.0
-content_margin_bottom = 8.0
-bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+content_margin_bottom = 0.0
+bg_color = Color(0.7647059, 0.16470589, 0.16862746, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -38,10 +97,10 @@ corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3c04x"]
 content_margin_left = 24.0
-content_margin_top = 8.0
+content_margin_top = 0.0
 content_margin_right = 24.0
-content_margin_bottom = 8.0
-bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+content_margin_bottom = 0.0
+bg_color = Color(0.6666667, 0.6666667, 0.6666667, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -53,6 +112,150 @@ corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_joh67"]
+content_margin_left = 24.0
+content_margin_top = 0.0
+content_margin_right = 24.0
+content_margin_bottom = 0.0
+bg_color = Color(0.7647059, 0.16470589, 0.16862746, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_u184e"]
+content_margin_left = 24.0
+content_margin_top = 0.0
+content_margin_right = 24.0
+content_margin_bottom = 0.0
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s4pem"]
+content_margin_left = 24.0
+content_margin_top = 0.0
+content_margin_right = 24.0
+content_margin_bottom = 0.0
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xio0d"]
+content_margin_left = 24.0
+content_margin_top = 0.0
+content_margin_right = 24.0
+content_margin_bottom = 0.0
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tf5ef"]
+content_margin_left = 24.0
+content_margin_top = 0.0
+content_margin_right = 24.0
+content_margin_bottom = 0.0
+bg_color = Color(0.6666667, 0.6666667, 0.6666667, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qao3l"]
+content_margin_left = 24.0
+content_margin_top = 0.0
+content_margin_right = 24.0
+content_margin_bottom = 0.0
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lknku"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(4.813075e-07, 0.58941793, 0.3444402, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_u2jyo"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0.5882353, 0.34509805, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bpbph"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0.5882353, 0.34509805, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qewnw"]
 content_margin_left = 24.0
 content_margin_top = 8.0
 content_margin_right = 24.0
@@ -68,12 +271,92 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_u184e"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_db6af"]
 content_margin_left = 24.0
 content_margin_top = 8.0
 content_margin_right = 24.0
 content_margin_bottom = 8.0
-bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+bg_color = Color(4.813075e-07, 0.58941793, 0.3444402, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rkggs"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1bnxd"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3xnla"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ln2ma"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0.6666667, 0.6666667, 0.6666667, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5pot6"]
+content_margin_left = 24.0
+content_margin_top = 8.0
+content_margin_right = 24.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -87,91 +370,220 @@ corner_radius_bottom_left = 8
 [node name="MainMenu" type="CanvasLayer" unique_id=694641312]
 script = ExtResource("1_6ba75")
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=1786797855]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1171144068]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0627451, 0.39215687, 0.79607844, 1)
+color = Color(0, 0.46313113, 0.46313107, 1)
 
-[node name="CenterContainer" type="CenterContainer" parent="ColorRect" unique_id=1845525275]
-layout_mode = 1
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=53177135]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="ColorRect/CenterContainer" unique_id=1225098758]
+[node name="CenterContainer" type="CenterContainer" parent="ScrollContainer" unique_id=1845525275]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="LoginForm" type="VBoxContainer" parent="ScrollContainer/CenterContainer" unique_id=1225098758]
 layout_mode = 2
 theme_override_constants/separation = 16
-alignment = 1
 
-[node name="TextureRect" type="TextureRect" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1885099999]
-custom_minimum_size = Vector2(200, 122.9)
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-texture = ExtResource("2_8x0bb")
-expand_mode = 1
-
-[node name="Title" type="Label" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1994633784]
+[node name="Title" type="Label" parent="ScrollContainer/CenterContainer/LoginForm" unique_id=1994633784]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "Uplord Adventure"
 horizontal_alignment = 1
 
-[node name="EmailInput" type="LineEdit" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1479818187]
-custom_minimum_size = Vector2(320, 44)
-layout_mode = 2
-size_flags_horizontal = 4
-placeholder_text = "Email"
-virtual_keyboard_type = 2
-
-[node name="PasswordInput" type="LineEdit" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=506267251]
-custom_minimum_size = Vector2(320, 44)
-layout_mode = 2
-size_flags_horizontal = 4
-placeholder_text = "Password"
-virtual_keyboard_type = 1
-secret = true
-
-[node name="AuthButtons" type="HBoxContainer" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1417850851]
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_constants/separation = 12
-alignment = 1
-
-[node name="LoginButton" type="Button" parent="ColorRect/CenterContainer/VBoxContainer/AuthButtons" unique_id=1253706969]
-custom_minimum_size = Vector2(154, 44)
-layout_mode = 2
-text = "Login"
-
-[node name="RegisterButton" type="Button" parent="ColorRect/CenterContainer/VBoxContainer/AuthButtons" unique_id=1514925476]
-custom_minimum_size = Vector2(154, 44)
-layout_mode = 2
-text = "Register"
-
-[node name="StatusLabel" type="Label" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=71176934]
-custom_minimum_size = Vector2(320, 24)
+[node name="StatusLabel" type="Label" parent="ScrollContainer/CenterContainer/LoginForm" unique_id=1616106582]
+custom_minimum_size = Vector2(360, 28)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Login or register to play."
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Button" parent="ColorRect/CenterContainer/VBoxContainer" unique_id=1306766417 instance=ExtResource("2_kt4fb")]
-custom_minimum_size = Vector2(40, 48)
+[node name="EmailInput" type="LineEdit" parent="ScrollContainer/CenterContainer/LoginForm" unique_id=495756340]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_placeholder_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_6mijq")
+theme_override_styles/read_only = SubResource("StyleBoxFlat_w2r0d")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4e78x")
+placeholder_text = "Email"
+select_all_on_focus = true
+virtual_keyboard_type = 5
+caret_blink = true
+
+[node name="PasswordInput" type="LineEdit" parent="ScrollContainer/CenterContainer/LoginForm" unique_id=1367936641]
+custom_minimum_size = Vector2(360, 48)
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_placeholder_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_6mijq")
+theme_override_styles/read_only = SubResource("StyleBoxFlat_w2r0d")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4e78x")
+placeholder_text = "Password"
+select_all_on_focus = true
+virtual_keyboard_type = 6
+caret_blink = true
+secret = true
+
+[node name="LoginButton" parent="ScrollContainer/CenterContainer/LoginForm" unique_id=1306766417 instance=ExtResource("2_kt4fb")]
+custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
-theme_override_styles/normal = SubResource("StyleBoxFlat_omy8q")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_i5wg5")
-theme_override_styles/hover = SubResource("StyleBoxFlat_3c04x")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_joh67")
-theme_override_styles/focus = SubResource("StyleBoxFlat_u184e")
-text = "Connect"
+theme_override_styles/normal = SubResource("StyleBoxFlat_mu8pm")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_omy8q")
+theme_override_styles/hover = SubResource("StyleBoxFlat_i5wg5")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_3c04x")
+theme_override_styles/focus = SubResource("StyleBoxFlat_joh67")
+text = "Login"
+padding_x = 24.0
+padding_y = 0.0
+border_color = Color(0, 0, 0, 0)
+bg_color = Color(0.7647059, 0.16470589, 0.16862746, 1)
+bg_color_hover = Color(0.7647059, 0.16470589, 0.16862746, 1)
+bg_color_pressed = Color(0.7647059, 0.16470589, 0.16862746, 1)
+
+[node name="RegisterButton" parent="ScrollContainer/CenterContainer/LoginForm" unique_id=1426670930 instance=ExtResource("2_kt4fb")]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_u184e")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_s4pem")
+theme_override_styles/hover = SubResource("StyleBoxFlat_xio0d")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tf5ef")
+theme_override_styles/focus = SubResource("StyleBoxFlat_qao3l")
+text = "Create an account
+"
+padding_x = 24.0
+padding_y = 0.0
+border_color = Color(0, 0, 0, 0.2)
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+bg_color_hover = Color(0, 0.4627451, 0.4627451, 1)
+bg_color_pressed = Color(0, 0.4627451, 0.4627451, 1)
+
+[node name="RegisterForm" type="VBoxContainer" parent="ScrollContainer/CenterContainer" unique_id=1544970866]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="ScrollContainer/CenterContainer/RegisterForm" unique_id=2115638747]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Uplord Adventure"
+horizontal_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="ScrollContainer/CenterContainer/RegisterForm" unique_id=1299364111]
+custom_minimum_size = Vector2(360, 28)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Create an account to play."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="UsernameInput" type="LineEdit" parent="ScrollContainer/CenterContainer/RegisterForm" unique_id=2075048966]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_placeholder_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_6mijq")
+theme_override_styles/read_only = SubResource("StyleBoxFlat_w2r0d")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4e78x")
+placeholder_text = "Player name"
+select_all_on_focus = true
+virtual_keyboard_type = 5
+caret_blink = true
+
+[node name="EmailInput" type="LineEdit" parent="ScrollContainer/CenterContainer/RegisterForm" unique_id=236237214]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_placeholder_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_6mijq")
+theme_override_styles/read_only = SubResource("StyleBoxFlat_w2r0d")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4e78x")
+placeholder_text = "Email"
+select_all_on_focus = true
+virtual_keyboard_type = 5
+caret_blink = true
+
+[node name="PasswordInput" type="LineEdit" parent="ScrollContainer/CenterContainer/RegisterForm" unique_id=399591583]
+custom_minimum_size = Vector2(360, 48)
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_placeholder_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_6mijq")
+theme_override_styles/read_only = SubResource("StyleBoxFlat_w2r0d")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4e78x")
+placeholder_text = "Password"
+select_all_on_focus = true
+virtual_keyboard_type = 6
+caret_blink = true
+secret = true
+
+[node name="ConfirmPasswordInput" type="LineEdit" parent="ScrollContainer/CenterContainer/RegisterForm" unique_id=109071573]
+custom_minimum_size = Vector2(360, 48)
+layout_mode = 2
+size_flags_vertical = 6
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_placeholder_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_6mijq")
+theme_override_styles/read_only = SubResource("StyleBoxFlat_w2r0d")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4e78x")
+placeholder_text = "Confirm password"
+select_all_on_focus = true
+virtual_keyboard_type = 6
+caret_blink = true
+secret = true
+
+[node name="CreateAccountButton" parent="ScrollContainer/CenterContainer/RegisterForm" unique_id=529804551 instance=ExtResource("2_kt4fb")]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_lknku")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_u2jyo")
+theme_override_styles/hover = SubResource("StyleBoxFlat_bpbph")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_qewnw")
+theme_override_styles/focus = SubResource("StyleBoxFlat_db6af")
+text = "Create account
+"
 padding_x = 24.0
 border_color = Color(0, 0, 0, 0)
-trim_color = Color(1, 1, 1, 0)
+bg_color = Color(4.813075e-07, 0.58941793, 0.3444402, 1)
+bg_color_hover = Color(0, 0.5882353, 0.34509805, 1)
+bg_color_pressed = Color(0, 0.5882353, 0.34509805, 1)
+
+[node name="BackButton" parent="ScrollContainer/CenterContainer/RegisterForm" unique_id=1753121664 instance=ExtResource("2_kt4fb")]
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_rkggs")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_1bnxd")
+theme_override_styles/hover = SubResource("StyleBoxFlat_3xnla")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_ln2ma")
+theme_override_styles/focus = SubResource("StyleBoxFlat_5pot6")
+text = "Back"
+padding_x = 24.0
+border_color = Color(0, 0, 0, 0)
+bg_color = Color(0, 0.4627451, 0.4627451, 1)
+bg_color_hover = Color(0, 0.4627451, 0.4627451, 1)
+bg_color_pressed = Color(0, 0.4627451, 0.4627451, 1)
