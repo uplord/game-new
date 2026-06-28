@@ -33,6 +33,10 @@ signal targeted(enemy: Node)
 @export var hp := 100.0
 @export var max_mp := 100.0
 @export var mp := 100.0
+@export var respawn_seconds := 10.0
+@export var reward_gold_min := 0
+@export var reward_gold_max := 0
+@export var reward_xp: Dictionary = {}
 
 
 @export_category("Approach Points")
@@ -90,6 +94,7 @@ signal targeted(enemy: Node)
 @onready var body: Node = $Base/Model
 
 var is_selected := false
+var enemy_definition_loaded := false
 
 
 func _ready() -> void:
@@ -101,6 +106,88 @@ func _ready() -> void:
 
 	add_to_group("targetable_enemies")
 	_connect_target_area()
+	_load_enemy_definition()
+
+
+func _load_enemy_definition() -> void:
+	if enemy_definition_id.strip_edges() == "":
+		return
+
+	if Firebase.has_signal("enemy_definition_loaded") and not Firebase.enemy_definition_loaded.is_connected(_on_enemy_definition_loaded):
+		Firebase.enemy_definition_loaded.connect(_on_enemy_definition_loaded)
+
+	if Firebase.has_method("load_enemy_definition"):
+		Firebase.load_enemy_definition(enemy_definition_id)
+
+
+func _on_enemy_definition_loaded(definition_id: String, data: Dictionary) -> void:
+	if definition_id != enemy_definition_id:
+		return
+	_apply_enemy_definition(data)
+
+
+func _apply_enemy_definition(data: Dictionary) -> void:
+	if data.is_empty():
+		return
+
+	enemy_definition_loaded = true
+	enemy_name = str(data.get("name", enemy_name))
+	max_hp = max(1.0, float(data.get("max_hp", max_hp)))
+	hp = max_hp
+	max_mp = max(0.0, float(data.get("max_mp", max_mp)))
+	mp = max_mp
+	respawn_seconds = max(0.0, float(data.get("respawn_seconds", respawn_seconds)))
+
+	_apply_enemy_definition_rewards(data)
+
+
+func _apply_enemy_definition_rewards(data: Dictionary) -> void:
+	var rewards = data.get("rewards", {})
+	if rewards is Dictionary:
+		reward_gold_min = int((rewards as Dictionary).get("gold_min", reward_gold_min))
+		reward_gold_max = int((rewards as Dictionary).get("gold_max", reward_gold_max))
+
+	var xp = rewards.get("xp", {})
+	if xp is Dictionary:
+		reward_xp = _normalize_reward_xp(xp as Dictionary)
+
+
+func _normalize_reward_xp(xp: Dictionary) -> Dictionary:
+	var normalized := {}
+	for skill_id in ["melee", "defence", "magic", "healing"]:
+		normalized[skill_id] = max(0, int(xp.get(skill_id, 0)))
+	return normalized
+
+
+func _refresh_rewards_from_cached_definition() -> void:
+	if enemy_definition_id.strip_edges() == "":
+		return
+	if not Firebase.has_method("get_enemy_definition"):
+		return
+
+	var cached_definition = Firebase.get_enemy_definition(enemy_definition_id)
+	if cached_definition is Dictionary and not (cached_definition as Dictionary).is_empty():
+		_apply_enemy_definition_rewards(cached_definition as Dictionary)
+
+
+func get_enemy_battle_data() -> Dictionary:
+	# get_enemy_battle_data() can be called by the UI at the same time the
+	# Firestore request is finishing. Pull from the Firebase cache here too so
+	# the server receives enemy_definition.xp, not an empty reward_xp map.
+	_refresh_rewards_from_cached_definition()
+
+	return {
+		"enemy_definition_id": enemy_definition_id,
+		"enemy_name": enemy_name,
+		"enemy_hp": hp,
+		"enemy_max_hp": max_hp,
+		"enemy_mp": mp,
+		"enemy_max_mp": max_mp,
+		"enemy_respawn_seconds": respawn_seconds,
+		"enemy_reward_gold_min": reward_gold_min,
+		"enemy_reward_gold_max": reward_gold_max,
+		"enemy_reward_xp": reward_xp.duplicate(true),
+	}
 
 
 func _process(_delta: float) -> void:

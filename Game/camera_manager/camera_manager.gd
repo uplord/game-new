@@ -172,7 +172,7 @@ func apply_orientation_zoom():
 	else:
 		map_scale = screen_size.y / BASE_SIZE.y
 		game_offset = 0.0
-	print("map_scale: ", map_scale)
+
 	if map != null and is_instance_valid(map):
 		map.scale = Vector2.ONE * map_scale
 

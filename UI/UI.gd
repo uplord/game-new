@@ -57,6 +57,10 @@ func _ready() -> void:
 
 	if SceneManager.has_signal("map_status_changed"):
 		SceneManager.map_status_changed.connect(_update_map_label)
+	if Firebase.has_signal("character_update_success") and not Firebase.character_update_success.is_connected(_on_character_update_success):
+		Firebase.character_update_success.connect(_on_character_update_success)
+	if Firebase.has_signal("login_success") and not Firebase.login_success.is_connected(_on_firebase_login_success):
+		Firebase.login_success.connect(_on_firebase_login_success)
 	
 	_setup_battle_buttons()
 	_setup_death_screen()
@@ -65,7 +69,38 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_hide_effect_labels()
 	get_window().size_changed.emit()
+	_refresh_player_card_from_firebase()
 	_update_battle_buttons()
+
+
+func _on_character_update_success(_data: Dictionary) -> void:
+	_refresh_player_card_from_firebase()
+
+
+func _on_firebase_login_success(_data: Dictionary) -> void:
+	_refresh_player_card_from_firebase()
+
+
+func _get_loaded_character_skills() -> Dictionary:
+	if Firebase.has_method("get_character_skills"):
+		return Firebase.get_character_skills()
+	return Firebase.get_character_value("skills", {})
+
+
+func _refresh_player_card_from_firebase() -> void:
+	if player_card == null or not player_card.has_method("set_card_data"):
+		return
+
+	var player = battle_state.get("player", {}) if battle_state is Dictionary else {}
+	player_card.set_card_data(
+		Firebase.get_character_name(),
+		float(player.get("hp", 100.0)),
+		float(player.get("max_hp", 100.0)),
+		float(player.get("mp", 100.0)),
+		float(player.get("max_mp", 100.0)),
+		_get_loaded_character_skills()
+	)
+
 
 func _process(delta):
 	auto_skill_1_timer += delta
@@ -194,7 +229,7 @@ func _clear_user_for_logout() -> void:
 	_update_battle_buttons()
 
 	if player_card != null and player_card.has_method("set_card_data"):
-		player_card.set_card_data("Player", 100.0, 100.0, 100.0, 100.0)
+		player_card.set_card_data("Player", 100.0, 100.0, 100.0, 100.0, {})
 
 	if label_map != null:
 		_last_map_label_text = ""
@@ -214,7 +249,6 @@ func show_enemy_card(enemy: Node) -> void:
 			current_enemy_target.set_selected(false)
 
 	current_enemy_target = enemy
-	print("TARGET: ", enemy)
 	
 	# Camera positioning for enemy targeting is handled by Player.gd.
 	# Do not focus the camera here: this runs before the player has chosen the
@@ -258,8 +292,7 @@ func hide_enemy_card(force: bool = false) -> void:
 			current_enemy_target.set_selected(false)
 
 	current_enemy_target = null
-	
-	#print("hide_enemy_card")
+
 
 	if enemy_card != null:
 		enemy_card.visible = false
@@ -386,15 +419,9 @@ func _setup_battle_buttons() -> void:
 func _select_enemy_on_server(enemy: Node) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
-	ServerManager.send_to_server({
-		"type": "c_select_enemy",
-		"enemy_id": _get_enemy_id(enemy),
-		"enemy_name": _get_enemy_name(enemy),
-		"enemy_hp": _get_enemy_hp(enemy),
-		"enemy_max_hp": _get_enemy_max_hp(enemy),
-		"enemy_mp": _get_enemy_mp(enemy),
-		"enemy_max_mp": _get_enemy_max_mp(enemy),
-	})
+	var packet := _make_enemy_battle_packet(enemy)
+	packet["type"] = "c_select_enemy"
+	ServerManager.send_to_server(packet)
 
 
 func _get_skill_data(skill_id: String) -> Dictionary:
@@ -456,12 +483,7 @@ func _send_battle_skill_packet(skill_id: String) -> void:
 	}
 
 	if current_enemy_target != null and is_instance_valid(current_enemy_target):
-		packet["enemy_id"] = _get_enemy_id(current_enemy_target)
-		packet["enemy_name"] = _get_enemy_name(current_enemy_target)
-		packet["enemy_hp"] = _get_enemy_hp(current_enemy_target)
-		packet["enemy_max_hp"] = _get_enemy_max_hp(current_enemy_target)
-		packet["enemy_mp"] = _get_enemy_mp(current_enemy_target)
-		packet["enemy_max_mp"] = _get_enemy_max_mp(current_enemy_target)
+		packet.merge(_make_enemy_battle_packet(current_enemy_target), true)
 
 	_set_auto_skill_pending(skill_id)
 	_update_battle_buttons()
@@ -496,11 +518,12 @@ func apply_battle_state(state: Dictionary) -> void:
 
 	if player_card != null and player_card.has_method("set_card_data"):
 		player_card.set_card_data(
-			Firebase.get_display_name(),
+			Firebase.get_character_name(),
 			float(player.get("hp", 100.0)),
 			float(player.get("max_hp", 100.0)),
 			float(player.get("mp", 100.0)),
-			float(player.get("max_mp", 100.0))
+			float(player.get("max_mp", 100.0)),
+			_get_loaded_character_skills()
 		)
 
 	_update_effect_labels()
@@ -934,6 +957,59 @@ func _find_closest_visible_enemy() -> Node:
 				best_distance = distance
 				best_enemy = enemy
 	return best_enemy
+
+
+func _make_enemy_battle_packet(enemy: Node) -> Dictionary:
+	var packet := {
+		"enemy_id": _get_enemy_id(enemy),
+		"enemy_name": _get_enemy_name(enemy),
+		"enemy_hp": _get_enemy_hp(enemy),
+		"enemy_max_hp": _get_enemy_max_hp(enemy),
+		"enemy_mp": _get_enemy_mp(enemy),
+		"enemy_max_mp": _get_enemy_max_mp(enemy),
+	}
+
+	if enemy != null and enemy.has_method("get_enemy_battle_data"):
+		packet.merge(enemy.get_enemy_battle_data(), true)
+
+	_apply_cached_enemy_definition_to_packet(enemy, packet)
+
+	return packet
+
+
+func _apply_cached_enemy_definition_to_packet(enemy: Node, packet: Dictionary) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	if not Firebase.has_method("get_enemy_definition"):
+		return
+
+	var definition_id := str(packet.get("enemy_definition_id", enemy.get("enemy_definition_id"))).strip_edges()
+	if definition_id == "":
+		return
+
+	packet["enemy_definition_id"] = definition_id
+	var definition = Firebase.get_enemy_definition(definition_id)
+	if not (definition is Dictionary) or (definition as Dictionary).is_empty():
+		return
+
+	var definition_data := definition as Dictionary
+	packet["enemy_name"] = str(definition_data.get("name", packet.get("enemy_name", "Enemy")))
+	packet["enemy_max_hp"] = float(definition_data.get("max_hp", packet.get("enemy_max_hp", 100.0)))
+	packet["enemy_max_mp"] = float(definition_data.get("max_mp", packet.get("enemy_max_mp", 100.0)))
+	packet["enemy_respawn_seconds"] = float(definition_data.get("respawn_seconds", packet.get("enemy_respawn_seconds", 10.0)))
+
+	var rewards = definition_data.get("rewards", {})
+	if rewards is Dictionary:
+		packet["enemy_reward_gold_min"] = int((rewards as Dictionary).get("gold_min", packet.get("enemy_reward_gold_min", 0)))
+		packet["enemy_reward_gold_max"] = int((rewards as Dictionary).get("gold_max", packet.get("enemy_reward_gold_max", 0)))
+
+	var current_xp = packet.get("enemy_reward_xp", {})
+	if current_xp is Dictionary and not (current_xp as Dictionary).is_empty():
+		return
+
+	var xp = definition_data.get("xp", {})
+	if xp is Dictionary:
+		packet["enemy_reward_xp"] = (xp as Dictionary).duplicate(true)
 
 
 func _get_enemy_id(enemy: Node) -> String:

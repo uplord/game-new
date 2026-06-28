@@ -15,6 +15,8 @@ const PLAYER_GLOBAL_SKILL_COOLDOWN := 1.0
 const GLOBAL_SKILL_COOLDOWN_ID := "_global_skill"
 const BATTLE_STATE_BROADCAST_INTERVAL := 1.0
 const ENEMY_RESPAWN_SECONDS := 10.0
+const DEFAULT_ENEMY_REWARD_GOLD_MIN := 0
+const DEFAULT_ENEMY_REWARD_GOLD_MAX := 0
 const ENEMY_FIRST_ATTACK_DELAY := 1.0
 const ENEMY_ACTION_INTERVAL := 2.0
 
@@ -654,9 +656,50 @@ func _enemy_mp_from_data(data: Dictionary, fallback_max_mp: float) -> float:
 	return clamp(float(data.get("enemy_mp", data.get("mp", fallback_max_mp))), 0.0, fallback_max_mp)
 
 
+func _enemy_respawn_seconds_from_data(data: Dictionary) -> float:
+	return max(0.0, float(data.get("enemy_respawn_seconds", data.get("respawn_seconds", ENEMY_RESPAWN_SECONDS))))
+
+
+func _enemy_reward_gold_min_from_data(data: Dictionary) -> int:
+	return max(0, int(data.get("enemy_reward_gold_min", data.get("gold_min", DEFAULT_ENEMY_REWARD_GOLD_MIN))))
+
+
+func _enemy_reward_gold_max_from_data(data: Dictionary) -> int:
+	return max(_enemy_reward_gold_min_from_data(data), int(data.get("enemy_reward_gold_max", data.get("gold_max", DEFAULT_ENEMY_REWARD_GOLD_MAX))))
+
+
+func _enemy_reward_xp_from_data(data: Dictionary) -> Dictionary:
+	var xp = data.get("enemy_reward_xp", data.get("xp", {}))
+	if xp is Dictionary:
+		return (xp as Dictionary).duplicate(true)
+	return {}
+
+
+func _apply_enemy_rewards_from_data(enemy: Dictionary, data: Dictionary) -> Dictionary:
+	if data.is_empty():
+		return enemy
+
+	enemy.respawn_seconds = _enemy_respawn_seconds_from_data(data)
+	enemy.reward_gold_min = _enemy_reward_gold_min_from_data(data)
+	enemy.reward_gold_max = _enemy_reward_gold_max_from_data(data)
+	enemy.reward_xp = _enemy_reward_xp_from_data(data)
+	enemy.definition_id = str(data.get("enemy_definition_id", data.get("definition_id", enemy.get("definition_id", ""))))
+	return enemy
+
+
+func _roll_enemy_gold_reward(enemy: Dictionary) -> int:
+	var gold_min = max(0, int(enemy.get("reward_gold_min", DEFAULT_ENEMY_REWARD_GOLD_MIN)))
+	var gold_max = max(gold_min, int(enemy.get("reward_gold_max", gold_min)))
+	if gold_max <= gold_min:
+		return gold_min
+	return randi_range(gold_min, gold_max)
+
+
 func _apply_enemy_scene_stats(enemy: Dictionary, data: Dictionary, only_when_new: bool = false) -> Dictionary:
 	if data.is_empty():
 		return enemy
+
+	enemy = _apply_enemy_rewards_from_data(enemy, data)
 
 	var scene_max_hp := _enemy_max_hp_from_data(data)
 	var scene_max_mp := _enemy_max_mp_from_data(data)
@@ -701,6 +744,7 @@ func _get_or_create_enemy_state(client_id: int, enemy_id: String, enemy_name: St
 			scene_max_mp,
 			ENEMY_SKILL_ORDER
 		)
+		battle_enemies[key] = _apply_enemy_rewards_from_data(battle_enemies[key], scene_stats)
 	else:
 		var enemy: Dictionary = battle_enemies[key]
 		if enemy_name != "" and str(enemy.get("name", "")) == "Enemy":
@@ -1017,7 +1061,7 @@ func _mark_enemy_defeated(enemy_key: String, enemy: Dictionary) -> void:
 
 	enemy.defeated = true
 	enemy.hp = 0.0
-	enemy.respawn_at = _now() + ENEMY_RESPAWN_SECONDS
+	enemy.respawn_at = _now() + float(enemy.get("respawn_seconds", ENEMY_RESPAWN_SECONDS))
 	enemy.next_action_at = 0.0
 	enemy.attackers = []
 	enemy.cooldowns = {}
@@ -1036,10 +1080,27 @@ func _mark_enemy_defeated(enemy_key: String, enemy: Dictionary) -> void:
 			player.target_enemy_id = ""
 
 		battle_players[attacker_id] = player
+		_send_enemy_reward(attacker_id, enemy)
 		_send_battle_state(attacker_id)
 
 	_broadcast_enemy_visibility(enemy, false)
 	_broadcast_battle_state_to_enemy_instance(enemy)
+
+
+func _send_enemy_reward(client_id: int, enemy: Dictionary) -> void:
+	var gold_reward := _roll_enemy_gold_reward(enemy)
+	var xp_reward: Dictionary = {}
+	var raw_xp = enemy.get("reward_xp", {})
+	if raw_xp is Dictionary:
+		xp_reward = (raw_xp as Dictionary).duplicate(true)
+
+	server_manager.send_to_client(client_id, {
+		"type": "s_enemy_reward",
+		"enemy_id": str(enemy.get("id", "")),
+		"enemy_definition_id": str(enemy.get("definition_id", "")),
+		"gold": gold_reward,
+		"xp": xp_reward.duplicate(true),
+	})
 
 
 func _apply_enemy_action_by_key(enemy_key: String) -> bool:
@@ -1337,6 +1398,41 @@ func _is_remote_move_for_current_area(data: Dictionary) -> bool:
 	)
 
 
+func _apply_client_enemy_reward(data: Dictionary) -> void:
+	var gold_reward := int(data.get("gold", 0))
+	var xp_reward = data.get("xp", {})
+	if not (xp_reward is Dictionary):
+		xp_reward = {}
+
+	var xp_dictionary := (xp_reward as Dictionary).duplicate(true)
+	if xp_dictionary.is_empty():
+		xp_dictionary = _get_cached_enemy_definition_xp(str(data.get("enemy_definition_id", "")))
+
+	if Firebase.has_method("add_character_rewards"):
+		Firebase.add_character_rewards(gold_reward, xp_dictionary)
+
+	if logger != null:
+		logger.info("Enemy reward: +%d gold, xp=%s" % [gold_reward, str(xp_dictionary)])
+
+
+func _get_cached_enemy_definition_xp(definition_id: String) -> Dictionary:
+	definition_id = definition_id.strip_edges()
+	if definition_id == "":
+		return {}
+	if not Firebase.has_method("get_enemy_definition"):
+		return {}
+
+	var definition = Firebase.get_enemy_definition(definition_id)
+	if not (definition is Dictionary):
+		return {}
+
+	var xp = (definition as Dictionary).get("xp", {})
+	if xp is Dictionary:
+		return (xp as Dictionary).duplicate(true)
+
+	return {}
+
+
 func handle_client_packet(data: Dictionary) -> void:
 	match data.get("type", ""):
 		"s_login_rejected":
@@ -1381,6 +1477,9 @@ func handle_client_packet(data: Dictionary) -> void:
 
 		"s_battle_error":
 			logger.warn("Battle error: %s" % data.get("message", "Unknown battle error"))
+
+		"s_enemy_reward":
+			_apply_client_enemy_reward(data)
 
 		"s_teleport_player":
 			logger.info("Server teleport")

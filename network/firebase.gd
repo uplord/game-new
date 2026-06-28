@@ -6,6 +6,8 @@ signal auth_request_started
 signal auth_request_finished
 signal character_update_success(data: Dictionary)
 signal character_update_failed(message: String)
+signal enemy_definition_loaded(definition_id: String, data: Dictionary)
+signal enemy_definition_failed(definition_id: String, message: String)
 
 const API_KEY := "AIzaSyDgVFX8sc5sxycJbOU9q0qNGkDjgdpWccU"
 const PROJECT_ID := "uplord-adventure"
@@ -14,6 +16,14 @@ const FIRESTORE_URL := "https://firestore.googleapis.com/v1/projects/%s/database
 const FIRESTORE_RUN_QUERY_URL := "https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents:runQuery" % PROJECT_ID
 const ACCOUNTS_COLLECTION := "accounts"
 const CHARACTERS_COLLECTION := "characters"
+const ENEMY_DEFINITIONS_COLLECTION := "enemy_definitions"
+
+const DEFAULT_CHARACTER_SKILLS := {
+	"melee": 50,
+	"defence": 20,
+	"magic": 0,
+	"healing": 0,
+}
 
 var http: HTTPRequest
 
@@ -34,6 +44,7 @@ var _request_kind := ""
 var _pending_register_username := ""
 var _pending_auth_kind := ""
 var _pending_character_update_fields: Dictionary = {}
+var enemy_definitions_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -70,6 +81,10 @@ func get_account_data() -> Dictionary:
 
 func get_character_data() -> Dictionary:
 	return character_data.duplicate(true)
+
+
+func get_character_skills() -> Dictionary:
+	return _get_normalized_character_skills()
 
 
 func get_display_name() -> String:
@@ -135,6 +150,99 @@ func register_user(user_email: String, password: String, new_username: String = 
 func login(user_email: String, password: String) -> void:
 	_pending_register_username = ""
 	_send_auth_request("accounts:signInWithPassword", user_email, password, "login")
+
+
+func get_enemy_definition(definition_id: String) -> Dictionary:
+	definition_id = definition_id.strip_edges()
+	if definition_id == "":
+		return {}
+	return enemy_definitions_cache.get(definition_id, {}).duplicate(true)
+
+
+func load_enemy_definition(definition_id: String) -> void:
+	definition_id = definition_id.strip_edges()
+	if definition_id == "":
+		enemy_definition_failed.emit(definition_id, "Missing enemy definition id.")
+		return
+
+	if enemy_definitions_cache.has(definition_id):
+		enemy_definition_loaded.emit(definition_id, get_enemy_definition(definition_id))
+		return
+
+	if not is_authenticated():
+		enemy_definition_failed.emit(definition_id, "Login before loading enemy definitions.")
+		return
+
+	var request := HTTPRequest.new()
+	add_child(request)
+	request.request_completed.connect(_on_enemy_definition_request_completed.bind(request, definition_id))
+
+	var url := "%s/%s/%s" % [FIRESTORE_URL, ENEMY_DEFINITIONS_COLLECTION, definition_id]
+	var err := request.request(url, _get_firestore_headers(), HTTPClient.METHOD_GET)
+	if err != OK:
+		request.queue_free()
+		enemy_definition_failed.emit(definition_id, "Enemy definition request could not start: %s" % error_string(err))
+
+
+func add_character_rewards(gold_amount: int, xp_rewards: Dictionary) -> void:
+	if not (xp_rewards is Dictionary):
+		xp_rewards = {}
+
+	var updates := {}
+	updates["gold"] = max(0, int(get_character_value("gold", 0)) + gold_amount)
+	updates["stats.monsters_killed"] = int(get_character_value("stats.monsters_killed", 0)) + 1
+
+	# Merge reward XP into the complete skills map, then save that map back to
+	# Firestore. This keeps the Firebase document shape exactly as:
+	# skills: { melee, defence, magic, healing }
+	var current_skills := get_character_skills()
+	var changed_skills := false
+	for skill_id in (xp_rewards as Dictionary).keys():
+		var clean_skill_id := str(skill_id).strip_edges()
+		if clean_skill_id == "":
+			continue
+
+		var amount := int((xp_rewards as Dictionary).get(skill_id, 0))
+		if amount <= 0:
+			continue
+
+		current_skills[clean_skill_id] = max(0, int(current_skills.get(clean_skill_id, 0)) + amount)
+		changed_skills = true
+
+	if changed_skills:
+		updates["skills"] = current_skills.duplicate(true)
+
+	# Update the local character immediately so the PlayerCard refreshes as soon
+	# as the reward packet is received. The Firestore PATCH below then persists
+	# the same values online.
+	for key in updates.keys():
+		_set_nested_value(character_data, str(key), updates[key])
+	character_update_success.emit(get_character_data())
+
+	update_character_fields(updates)
+
+
+func _on_enemy_definition_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray, request: HTTPRequest, definition_id: String) -> void:
+	request.queue_free()
+
+	var response_text := body.get_string_from_utf8()
+	var response = JSON.parse_string(response_text)
+	if response == null:
+		enemy_definition_failed.emit(definition_id, "Enemy definition returned invalid JSON.")
+		return
+
+	if response_code < 200 or response_code >= 300:
+		enemy_definition_failed.emit(definition_id, _get_firebase_error_message(response if response is Dictionary else {}))
+		return
+
+	var fields = (response as Dictionary).get("fields", {}) if response is Dictionary else {}
+	if not (fields is Dictionary):
+		enemy_definition_failed.emit(definition_id, "Enemy definition has no fields.")
+		return
+
+	var definition := _firestore_fields_to_dictionary(fields as Dictionary)
+	enemy_definitions_cache[definition_id] = definition
+	enemy_definition_loaded.emit(definition_id, definition.duplicate(true))
 
 
 func update_character_fields(fields: Dictionary) -> void:
@@ -310,12 +418,7 @@ func _send_firestore_create_default_character() -> void:
 			"skin": "#ffffff",
 			"trim": "#ffffff",
 		},
-		"skills": {
-			"melee": 0,
-			"magic": 0,
-			"defence": 0,
-			"healing": 0,
-		},
+		"skills": DEFAULT_CHARACTER_SKILLS.duplicate(true),
 		"stats": {
 			"deaths": 0,
 			"monsters_killed": 0,
@@ -367,11 +470,33 @@ func _send_firestore_load_account() -> void:
 		_fail_request("Logged in, but account profile could not be loaded: %s" % error_string(err))
 
 
+func _send_firestore_load_default_character() -> void:
+	if not is_authenticated():
+		_finish_auth_success()
+		return
+
+	# Your starter character document is saved as:
+	# <firebase_uid>_character_0
+	# Loading this directly avoids Firestore query/index issues and works with
+	# your current security rule because the document contains account_id == uid.
+	character_id = "%s_character_0" % user_id
+	var url := "%s/%s/%s" % [FIRESTORE_URL, CHARACTERS_COLLECTION, character_id]
+
+	_request_kind = "firestore_load_default_character"
+
+	var err := http.request(url, _get_firestore_headers(), HTTPClient.METHOD_GET)
+	if err != OK:
+		_fail_request("Logged in, but character data could not be loaded: %s" % error_string(err))
+
+
 func _send_firestore_query_first_character() -> void:
 	if not is_authenticated():
 		_finish_auth_success()
 		return
 
+	# Fallback for older saves where the selected character may not use the
+	# <uid>_character_0 document id. Keep this query simple so it does not need
+	# a composite index or an orderBy field to exist.
 	var body := JSON.stringify({
 		"structuredQuery": {
 			"from": [{"collectionId": CHARACTERS_COLLECTION}],
@@ -382,11 +507,7 @@ func _send_firestore_query_first_character() -> void:
 					"value": {"stringValue": user_id},
 				}
 			},
-			"orderBy": [{
-				"field": {"fieldPath": "created_at"},
-				"direction": "ASCENDING",
-			}],
-			"limit": 1,
+			"limit": 5,
 		}
 	})
 
@@ -424,7 +545,10 @@ func _request_completed(_result: int, response_code: int, _headers: PackedString
 			_send_firestore_load_account()
 		"firestore_load_account":
 			_apply_firestore_account_data(response as Dictionary)
-			_send_firestore_query_first_character()
+			_send_firestore_load_default_character()
+		"firestore_load_default_character":
+			_apply_firestore_character_data(response as Dictionary)
+			_finish_auth_success()
 		"firestore_query_character":
 			_handle_character_query_response(response)
 		"firestore_update_character":
@@ -504,6 +628,13 @@ func _handle_request_error(data: Dictionary) -> void:
 		_send_firestore_create_missing_account()
 		return
 
+	# If the expected <uid>_character_0 document is missing or blocked, try the
+	# account_id query before creating a new default. This prevents the game from
+	# showing an empty character when an older character document already exists.
+	if _request_kind == "firestore_load_default_character":
+		_send_firestore_query_first_character()
+		return
+
 	var message := _get_firebase_error_message(data)
 
 	if _request_kind == "firestore_update_character":
@@ -547,6 +678,7 @@ func _apply_firestore_character_data(data: Dictionary) -> void:
 	var fields = data.get("fields", {})
 	if fields is Dictionary:
 		character_data = _firestore_fields_to_dictionary(fields as Dictionary)
+		_normalize_loaded_character_data()
 
 
 func _finish_auth_success() -> void:
@@ -554,6 +686,8 @@ func _finish_auth_success() -> void:
 	_request_kind = ""
 	_pending_auth_kind = ""
 	auth_request_finished.emit()
+	if has_character():
+		character_update_success.emit(get_character_data())
 	login_success.emit(get_current_user_data())
 
 
@@ -714,6 +848,26 @@ func _set_nested_value(source: Dictionary, path: String, value) -> void:
 		if not current.has(key) or not (current[key] is Dictionary):
 			current[key] = {}
 		current = current[key]
+
+
+func _normalize_loaded_character_data() -> void:
+	if character_data.is_empty():
+		return
+
+	if not character_data.has("skills") or not (character_data.get("skills") is Dictionary):
+		character_data["skills"] = {}
+
+	var loaded_skills := character_data["skills"] as Dictionary
+	for skill_id in DEFAULT_CHARACTER_SKILLS.keys():
+		loaded_skills[str(skill_id)] = int(loaded_skills.get(skill_id, DEFAULT_CHARACTER_SKILLS[skill_id]))
+
+
+func _get_normalized_character_skills() -> Dictionary:
+	if character_data.is_empty():
+		return {}
+
+	_normalize_loaded_character_data()
+	return (character_data.get("skills", {}) as Dictionary).duplicate(true)
 
 
 func _looks_like_firestore_timestamp(value: String) -> bool:
