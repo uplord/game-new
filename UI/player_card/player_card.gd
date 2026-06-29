@@ -48,17 +48,31 @@ func _setup_skills_label() -> void:
 	vbox.add_child(skills_label)
 
 
-func _format_skills(skills: Dictionary) -> String:
-	if skills.is_empty():
-		return ""
+func _format_skills(skills: Dictionary, gold: int = 0) -> String:
+	var gold_text := format_number(gold)
 
-	return "Melee %d  |  Def %d  |  Magic %d  |  Heal %d" % [
+	return "Gold %s  |  Melee %d  |  Def %d  |  Magic %d  |  Heal %d" % [
+		gold_text,
 		int(skills.get("melee", 0)),
 		int(skills.get("defence", 0)),
 		int(skills.get("magic", 0)),
 		int(skills.get("healing", 0)),
 	]
 
+func format_number(value: int) -> String:
+	var s := str(abs(value))
+	var result := ""
+
+	while s.length() > 3:
+		result = "," + s.substr(s.length() - 3, 3) + result
+		s = s.substr(0, s.length() - 3)
+
+	result = s + result
+
+	if value < 0:
+		result = "-" + result
+
+	return result
 
 func _create_bar_value_label(bar: ProgressBar) -> Label:
 	if bar == null:
@@ -84,7 +98,16 @@ func _format_stat_value(value: float, max_value: float) -> String:
 	return "%d / %d" % [roundi(value), roundi(max_value)]
 
 
-func set_card_data(display_name: String, hp_value: float = 100.0, hp_max: float = 100.0, mp_value: float = 0.0, mp_max: float = 100.0, skills: Dictionary = {}) -> void:
+func set_card_data(
+	display_name: String,
+	hp_value: float = 100.0,
+	hp_max: float = 100.0,
+	mp_value: float = 0.0,
+	mp_max: float = 100.0,
+	skills: Dictionary = {},
+	gold: int = 0,
+	show_skills_gold: bool = false
+) -> void:
 	if label_name != null:
 		label_name.text = display_name
 
@@ -103,14 +126,19 @@ func set_card_data(display_name: String, hp_value: float = 100.0, hp_max: float 
 		if mp_value_label != null:
 			mp_value_label.text = _format_stat_value(mp_bar.value, mp_bar.max_value)
 			mp_value_label.visible = mp_bar.visible
+	
+	if show_skills_gold:
+		set_skills(skills, gold)
+	elif skills_label != null:
+		skills_label.visible = false
+		skills_label.text = ""
 
-	set_skills(skills)
 
-
-func set_skills(skills: Dictionary) -> void:
+func set_skills(skills: Dictionary, gold: int = 0) -> void:
 	if skills_label == null:
 		_setup_skills_label()
 	if skills_label == null:
 		return
-	skills_label.text = _format_skills(skills)
+
+	skills_label.text = _format_skills(skills, gold)
 	skills_label.visible = skills_label.text != ""

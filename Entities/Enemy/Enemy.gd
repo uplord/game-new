@@ -147,7 +147,7 @@ func _apply_enemy_definition_rewards(data: Dictionary) -> void:
 		reward_gold_min = int((rewards as Dictionary).get("gold_min", reward_gold_min))
 		reward_gold_max = int((rewards as Dictionary).get("gold_max", reward_gold_max))
 
-	var xp = rewards.get("xp", {})
+	var xp = data.get("xp", {})
 	if xp is Dictionary:
 		reward_xp = _normalize_reward_xp(xp as Dictionary)
 

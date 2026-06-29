@@ -184,42 +184,44 @@ func load_enemy_definition(definition_id: String) -> void:
 		enemy_definition_failed.emit(definition_id, "Enemy definition request could not start: %s" % error_string(err))
 
 
-func add_character_rewards(gold_amount: int, xp_rewards: Dictionary) -> void:
-	if not (xp_rewards is Dictionary):
-		xp_rewards = {}
 
-	var updates := {}
-	updates["gold"] = max(0, int(get_character_value("gold", 0)) + gold_amount)
-	updates["stats.monsters_killed"] = int(get_character_value("stats.monsters_killed", 0)) + 1
+func apply_server_character_data(data: Dictionary) -> void:
+	if data.is_empty():
+		return
 
-	# Merge reward XP into the complete skills map, then save that map back to
-	# Firestore. This keeps the Firebase document shape exactly as:
-	# skills: { melee, defence, magic, healing }
-	var current_skills := get_character_skills()
-	var changed_skills := false
-	for skill_id in (xp_rewards as Dictionary).keys():
-		var clean_skill_id := str(skill_id).strip_edges()
-		if clean_skill_id == "":
-			continue
+	# The trusted multiplayer server/Admin SDK has already saved this to
+	# Firestore. The client only mirrors the confirmed server state locally so
+	# UI like the PlayerCard updates immediately.
+	for key in data.keys():
+		character_data[key] = data[key]
 
-		var amount := int((xp_rewards as Dictionary).get(skill_id, 0))
-		if amount <= 0:
-			continue
-
-		current_skills[clean_skill_id] = max(0, int(current_skills.get(clean_skill_id, 0)) + amount)
-		changed_skills = true
-
-	if changed_skills:
-		updates["skills"] = current_skills.duplicate(true)
-
-	# Update the local character immediately so the PlayerCard refreshes as soon
-	# as the reward packet is received. The Firestore PATCH below then persists
-	# the same values online.
-	for key in updates.keys():
-		_set_nested_value(character_data, str(key), updates[key])
+	_normalize_character_skill_defaults()
 	character_update_success.emit(get_character_data())
 
-	update_character_fields(updates)
+
+func apply_server_character_reward_local(gold_amount: int, xp_rewards: Dictionary) -> void:
+	# Fallback for old servers that send only the reward amount. This does not
+	# write to Firestore; it only updates the local UI cache.
+	character_data["gold"] = max(0, int(get_character_value("gold", 0)) + gold_amount)
+	_set_nested_value(character_data, "stats.monsters_killed", int(get_character_value("stats.monsters_killed", 0)) + 1)
+
+	var skills := get_character_skills()
+	if xp_rewards is Dictionary:
+		for skill_id in (xp_rewards as Dictionary).keys():
+			var clean_skill_id := str(skill_id).strip_edges()
+			if clean_skill_id == "":
+				continue
+			skills[clean_skill_id] = max(0, int(skills.get(clean_skill_id, 0)) + int((xp_rewards as Dictionary).get(skill_id, 0)))
+
+	character_data["skills"] = skills
+	_normalize_character_skill_defaults()
+	character_update_success.emit(get_character_data())
+
+func add_character_rewards(gold_amount: int, xp_rewards: Dictionary) -> void:
+	# Rewards are now saved by the trusted server/Admin SDK. Keep this method as
+	# a compatibility shim only so old client-side callers update local UI without
+	# attempting insecure Firestore writes that rules will reject.
+	apply_server_character_reward_local(gold_amount, xp_rewards if xp_rewards is Dictionary else {})
 
 
 func _on_enemy_definition_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray, request: HTTPRequest, definition_id: String) -> void:
@@ -518,12 +520,26 @@ func _send_firestore_query_first_character() -> void:
 		_fail_request("Logged in, but character data could not be loaded: %s" % error_string(err))
 
 
-func _request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+func _request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var response_text := body.get_string_from_utf8()
+
+	print("Firebase request kind: ", _request_kind)
+	print("Firebase result: ", result)
+	print("Firebase response code: ", response_code)
+	print("Firebase body: ", response_text)
+
+	if result != HTTPRequest.RESULT_SUCCESS:
+		_fail_request("Firebase request failed before a response was received. Result: %d" % result)
+		return
+
+	if response_text.strip_edges() == "":
+		_fail_request("Firebase returned an empty response. Code: %d" % response_code)
+		return
+
 	var response = JSON.parse_string(response_text)
 
 	if response == null:
-		_fail_request("Firebase returned an invalid response.")
+		_fail_request("Firebase returned invalid JSON. Code: %d Body: %s" % [response_code, response_text])
 		return
 
 	if response_code < 200 or response_code >= 300:
@@ -682,6 +698,7 @@ func _apply_firestore_character_data(data: Dictionary) -> void:
 
 
 func _finish_auth_success() -> void:
+	print("AUTH COMPLETE")
 	request_in_progress = false
 	_request_kind = ""
 	_pending_auth_kind = ""
@@ -848,6 +865,10 @@ func _set_nested_value(source: Dictionary, path: String, value) -> void:
 		if not current.has(key) or not (current[key] is Dictionary):
 			current[key] = {}
 		current = current[key]
+
+
+func _normalize_character_skill_defaults() -> void:
+	_normalize_loaded_character_data()
 
 
 func _normalize_loaded_character_data() -> void:

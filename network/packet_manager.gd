@@ -1088,19 +1088,53 @@ func _mark_enemy_defeated(enemy_key: String, enemy: Dictionary) -> void:
 
 
 func _send_enemy_reward(client_id: int, enemy: Dictionary) -> void:
-	var gold_reward := _roll_enemy_gold_reward(enemy)
-	var xp_reward: Dictionary = {}
-	var raw_xp = enemy.get("reward_xp", {})
-	if raw_xp is Dictionary:
-		xp_reward = (raw_xp as Dictionary).duplicate(true)
+	var definition_id := str(enemy.get("definition_id", "")).strip_edges()
+	var enemy_id := str(enemy.get("id", ""))
+
+	if definition_id == "":
+		logger.warn("Enemy reward skipped for %d: missing enemy_definition_id." % client_id)
+		return
+
+	if server_manager.has_method("apply_enemy_reward_for_client"):
+		server_manager.apply_enemy_reward_for_client(client_id, definition_id, enemy_id)
+	else:
+		logger.error("Server reward writer support is missing.")
+
+
+func _on_server_enemy_reward_applied(client_id: int, data: Dictionary) -> void:
+	if not server_manager.connected_clients.has(client_id):
+		return
 
 	server_manager.send_to_client(client_id, {
 		"type": "s_enemy_reward",
-		"enemy_id": str(enemy.get("id", "")),
-		"enemy_definition_id": str(enemy.get("definition_id", "")),
-		"gold": gold_reward,
-		"xp": xp_reward.duplicate(true),
+		"enemy_id": str(data.get("enemy_id", "")),
+		"enemy_definition_id": str(data.get("enemy_definition_id", "")),
+		"gold": int(data.get("gold", 0)),
+		"xp": data.get("xp", {}),
+		"character": data.get("character", {}),
 	})
+
+
+func _on_server_enemy_reward_failed(client_id: int, message: String) -> void:
+	logger.error("Enemy reward failed for %d: %s" % [client_id, message])
+	if server_manager.connected_clients.has(client_id):
+		server_manager.send_to_client(client_id, {
+			"type": "s_reward_failed",
+			"message": message,
+		})
+
+
+func _on_server_player_death_applied(client_id: int, data: Dictionary) -> void:
+	if not server_manager.connected_clients.has(client_id):
+		return
+	server_manager.send_to_client(client_id, {
+		"type": "s_character_update",
+		"character": data.get("character", {}),
+	})
+
+
+func _on_server_player_death_failed(client_id: int, message: String) -> void:
+	logger.error("Player death save failed for %d: %s" % [client_id, message])
 
 
 func _apply_enemy_action_by_key(enemy_key: String) -> bool:
@@ -1210,7 +1244,13 @@ func _apply_enemy_action_state(enemy_key: String, enemy: Dictionary) -> bool:
 		return false
 
 	var damage := BattleCalculator.calculate_enemy_damage(enemy, player, skill)
+	var was_alive := float(player.get("hp", PLAYER_MAX_HP)) > 0.0
 	player.hp = max(0.0, float(player.get("hp", PLAYER_MAX_HP)) - damage)
+
+	if was_alive and float(player.get("hp", PLAYER_MAX_HP)) <= 0.0 and not bool(player.get("death_recorded", false)):
+		player.death_recorded = true
+		if server_manager.has_method("apply_player_death_for_client"):
+			server_manager.apply_player_death_for_client(target_client_id)
 
 	if float(player.get("hp", PLAYER_MAX_HP)) > 0.0:
 		player = BattleCalculator.apply_effects(player, skill.get("effects", []), str(enemy.get("id", "")))
@@ -1247,6 +1287,7 @@ func _handle_reset_player_battle(client_id: int) -> void:
 	player.cooldowns = {}
 	player.effects = []
 	player.target_enemy_id = ""
+	player.death_recorded = false
 
 	battle_players[client_id] = player
 
@@ -1405,11 +1446,11 @@ func _apply_client_enemy_reward(data: Dictionary) -> void:
 		xp_reward = {}
 
 	var xp_dictionary := (xp_reward as Dictionary).duplicate(true)
-	if xp_dictionary.is_empty():
-		xp_dictionary = _get_cached_enemy_definition_xp(str(data.get("enemy_definition_id", "")))
-
-	if Firebase.has_method("add_character_rewards"):
-		Firebase.add_character_rewards(gold_reward, xp_dictionary)
+	var character = data.get("character", {})
+	if character is Dictionary and Firebase.has_method("apply_server_character_data"):
+		Firebase.apply_server_character_data(character as Dictionary)
+	elif Firebase.has_method("apply_server_character_reward_local"):
+		Firebase.apply_server_character_reward_local(gold_reward, xp_dictionary)
 
 	if logger != null:
 		logger.info("Enemy reward: +%d gold, xp=%s" % [gold_reward, str(xp_dictionary)])
@@ -1480,6 +1521,14 @@ func handle_client_packet(data: Dictionary) -> void:
 
 		"s_enemy_reward":
 			_apply_client_enemy_reward(data)
+
+		"s_character_update":
+			var character = data.get("character", {})
+			if character is Dictionary and Firebase.has_method("apply_server_character_data"):
+				Firebase.apply_server_character_data(character as Dictionary)
+
+		"s_reward_failed":
+			logger.warn(str(data.get("message", "Reward save failed.")))
 
 		"s_teleport_player":
 			logger.info("Server teleport")

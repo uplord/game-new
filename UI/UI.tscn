@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cb07e8snk8lhj"]
 
-[ext_resource type="Script" uid="uid://douasrbm8d75v" path="res://ui/ui.gd" id="1_0avjw"]
+[ext_resource type="Script" path="res://ui/ui.gd" id="1_ui"]
 [ext_resource type="PackedScene" uid="uid://0kf0lqvcb382" path="res://ui/modal/modal.tscn" id="2_rkf1o"]
 [ext_resource type="PackedScene" uid="uid://bi1hpc0h26ppw" path="res://ui/player_card/player_card.tscn" id="3_fgtw6"]
 [ext_resource type="PackedScene" uid="uid://0wn6iixn2ehd" path="res://ui/button/button.tscn" id="4_br2v7"]
@@ -727,7 +727,7 @@ corner_radius_bottom_right = 32
 corner_radius_bottom_left = 32
 
 [node name="UI" type="CanvasLayer" unique_id=452661851]
-script = ExtResource("1_0avjw")
+script = ExtResource("1_ui")
 
 [node name="UIFrame" type="Control" parent="." unique_id=128844854]
 layout_mode = 3
@@ -878,6 +878,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
 theme_override_font_sizes/font_size = 12
+text = "Test	"
 horizontal_alignment = 1
 
 [node name="BattleButtons" type="HBoxContainer" parent="UIFrame/BottomUI/MarginContainer/BoxContainer" unique_id=406334373]

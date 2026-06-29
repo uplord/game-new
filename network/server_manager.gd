@@ -13,10 +13,12 @@ const HEARTBEAT_INTERVAL := 1.0
 var DebugLogger = preload("res://utilities/logger.gd")
 var PacketManager = preload("./packet_manager.gd")
 var InstanceManagerScript = preload("./instance_manager.gd")
+var ServerRewardWriterScript = preload("./server_reward_writer.gd")
 
 var logger: Node
 var instance_manager: Node
 var packet_manager: Node
+var server_reward_writer: Node
 
 var peer: ENetMultiplayerPeer
 var is_server: bool = false
@@ -55,6 +57,16 @@ func _ready() -> void:
 	packet_manager.setup(self, logger)
 	packet_manager.name = "PacketManager"
 	add_child(packet_manager)
+
+	# Server-only Firebase Admin reward writer. This calls the local Node.js
+	# Admin SDK helper on the dedicated/headless server machine.
+	server_reward_writer = ServerRewardWriterScript.new()
+	server_reward_writer.name = "ServerRewardWriter"
+	add_child(server_reward_writer)
+	server_reward_writer.enemy_reward_applied.connect(packet_manager._on_server_enemy_reward_applied)
+	server_reward_writer.enemy_reward_failed.connect(packet_manager._on_server_enemy_reward_failed)
+	server_reward_writer.player_death_applied.connect(packet_manager._on_server_player_death_applied)
+	server_reward_writer.player_death_failed.connect(packet_manager._on_server_player_death_failed)
 
 	if DisplayServer.get_name() == "headless":
 		logger.info("Starting server...")
@@ -356,6 +368,36 @@ func _clear_account_session(client_id: int) -> void:
 
 	if active_account_sessions.get(firebase_user_id, -1) == client_id:
 		active_account_sessions.erase(firebase_user_id)
+
+
+func get_account_id_for_client(client_id: int) -> String:
+	return str(client_account_ids.get(client_id, "")).strip_edges()
+
+
+func apply_enemy_reward_for_client(client_id: int, enemy_definition_id: String, enemy_id: String = "") -> void:
+	if server_reward_writer == null:
+		logger.error("Server reward writer is missing.")
+		return
+
+	var account_id := get_account_id_for_client(client_id)
+	if account_id == "":
+		logger.warn("Cannot apply enemy reward for %d: no account session." % client_id)
+		return
+
+	server_reward_writer.apply_enemy_reward(client_id, account_id, enemy_definition_id, enemy_id)
+
+
+func apply_player_death_for_client(client_id: int) -> void:
+	if server_reward_writer == null:
+		logger.error("Server reward writer is missing.")
+		return
+
+	var account_id := get_account_id_for_client(client_id)
+	if account_id == "":
+		logger.warn("Cannot apply player death for %d: no account session." % client_id)
+		return
+
+	server_reward_writer.apply_player_death(client_id, account_id)
 
 # -------------------------
 # INSTANCE HELPERS

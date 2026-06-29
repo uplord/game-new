@@ -98,7 +98,9 @@ func _refresh_player_card_from_firebase() -> void:
 		float(player.get("max_hp", 100.0)),
 		float(player.get("mp", 100.0)),
 		float(player.get("max_mp", 100.0)),
-		_get_loaded_character_skills()
+		_get_loaded_character_skills(),
+		int(Firebase.get_character_value("gold", 0)),
+		true,
 	)
 
 
@@ -229,7 +231,7 @@ func _clear_user_for_logout() -> void:
 	_update_battle_buttons()
 
 	if player_card != null and player_card.has_method("set_card_data"):
-		player_card.set_card_data("Player", 100.0, 100.0, 100.0, 100.0, {})
+		player_card.set_card_data("Player", 100.0, 100.0, 100.0, 100.0, {}, 0)
 
 	if label_map != null:
 		_last_map_label_text = ""
@@ -523,7 +525,9 @@ func apply_battle_state(state: Dictionary) -> void:
 			float(player.get("max_hp", 100.0)),
 			float(player.get("mp", 100.0)),
 			float(player.get("max_mp", 100.0)),
-			_get_loaded_character_skills()
+			_get_loaded_character_skills(),
+			int(Firebase.get_character_value("gold", 0)),
+			true
 		)
 
 	_update_effect_labels()
